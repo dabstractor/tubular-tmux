@@ -59,7 +59,10 @@ if [ "$MODE" = "activate" ]; then
     fi
 
     # Get status bar foreground colors for prefix mode
+    BG=$(tmux show-option -gv @tubular_bg 2>/dev/null)
+    BG=${BG:-#1f1f28}
     PREFIX_FG=$(tmux show-option -gv @tubular_prefix_fg 2>/dev/null)
+    PREFIX_FG=${PREFIX_FG:-$BG}
     NEUTRAL_VISIBLE=$(tmux show-option -gv @tubular_neutral_visible 2>/dev/null)
     NEUTRAL_HIDDEN=$(tmux show-option -gv @tubular_neutral_hidden 2>/dev/null)
 
@@ -94,9 +97,14 @@ POLL_COUNT="${2:-0}"
 read -r CLIENT_PREFIX PANE_IN_MODE WINDOW_ZOOMED WINDOW_INDEX <<< "$(tmux display-message -p '#{client_prefix}|#{pane_in_mode}|#{window_zoomed_flag}|#{window_index}' 2>/dev/null | tr '|' ' ')"
 
 # Get mode-specific foreground colors and neutral colors for status bar
+BG=$(tmux show-option -gv @tubular_bg 2>/dev/null)
+BG=${BG:-#1f1f28}
 PREFIX_FG=$(tmux show-option -gv @tubular_prefix_fg 2>/dev/null)
+PREFIX_FG=${PREFIX_FG:-$BG}
 COPY_FG=$(tmux show-option -gv @tubular_copy_fg 2>/dev/null)
+COPY_FG=${COPY_FG:-$BG}
 ZOOM_FG=$(tmux show-option -gv @tubular_zoom_fg 2>/dev/null)
+ZOOM_FG=${ZOOM_FG:-$BG}
 NEUTRAL_VISIBLE=$(tmux show-option -gv @tubular_neutral_visible 2>/dev/null)
 NEUTRAL_HIDDEN=$(tmux show-option -gv @tubular_neutral_hidden 2>/dev/null)
 

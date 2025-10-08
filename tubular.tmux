@@ -43,10 +43,10 @@ copy_color=$(get_tmux_option "@tubular_copy_color" "#98bb6c")
 prefix_color=$(get_tmux_option "@tubular_prefix_color" "#d27e99")
 active_color=$(get_tmux_option "@tubular_active_color" "#7aa89f")
 
-# Mode-specific foreground colors (default to bg_dark for backward compatibility)
-prefix_fg=$(get_tmux_option "@tubular_prefix_fg" "$bg_dark")
-zoom_fg=$(get_tmux_option "@tubular_zoom_fg" "$bg_dark")
-copy_fg=$(get_tmux_option "@tubular_copy_fg" "$bg_dark")
+# Mode-specific foreground colors (default to @tubular_bg)
+prefix_fg=$(get_tmux_option "@tubular_prefix_fg" "$bg")
+zoom_fg=$(get_tmux_option "@tubular_zoom_fg" "$bg")
+copy_fg=$(get_tmux_option "@tubular_copy_fg" "$bg")
 
 # === Read Content Options ===
 window_tab_text=$(get_tmux_option "@tubular_window_tab_text" " #W ")
@@ -65,11 +65,11 @@ echo "$zoom_indicator" > /tmp/tubular-zoom-indicator
 # === Read Border Style Options ===
 normal_border_lines=$(get_tmux_option "@tubular_normal_border_lines" "single")
 normal_extra_bold=$(get_tmux_option "@tubular_normal_extra_bold" "0")
-active_extra_bold=$(get_tmux_option "@tubular_active_extra_bold" "1")
+active_extra_bold=$(get_tmux_option "@tubular_active_extra_bold" "0")
 prefix_border_lines=$(get_tmux_option "@tubular_prefix_border_lines" "heavy")
-prefix_extra_bold=$(get_tmux_option "@tubular_prefix_extra_bold" "1")
+prefix_extra_bold=$(get_tmux_option "@tubular_prefix_extra_bold" "$active_extra_bold")
 copy_border_lines=$(get_tmux_option "@tubular_copy_border_lines" "heavy")
-copy_extra_bold=$(get_tmux_option "@tubular_copy_extra_bold" "1")
+copy_extra_bold=$(get_tmux_option "@tubular_copy_extra_bold" "$active_extra_bold")
 
 # === Store Resolved Colors as Internal Options ===
 # These will be referenced in templates as #{@_tubular_color_name}
@@ -162,7 +162,7 @@ tmux set-option -g status-left "#[fg=#{?client_prefix,#{@_tubular_prefix_fg},#{?
 tmux set-option -g status-right "#[fg=#{?client_prefix,#{@_tubular_prefix_fg},#{?pane_in_mode,#{@_tubular_copy_fg},#{?window_zoomed_flag,#{@_tubular_zoom_fg},#{@_tubular_neutral_visible}}}},bg=#{?client_prefix,#{@_tubular_prefix_color},#{?pane_in_mode,#{@_tubular_copy_color},#{?window_zoomed_flag,#{@_tubular_zoom_color},#{@_tubular_bg_dark}}}}]$status_right_text"
 
 # Active window format - using tmux option references
-tmux set-window-option -g window-status-current-format "#[fg=#{?client_prefix,#{@_tubular_prefix_fg},#{?@active_window_zoomed,#{@_tubular_zoom_fg},#{?@active_pane_in_mode,#{@_tubular_copy_fg},#{@_tubular_active_color}}}},bg=#{?client_prefix,#{@_tubular_prefix_color},#{?@active_pane_in_mode,#{@_tubular_copy_color},#{?@active_window_zoomed,#{@_tubular_zoom_color},#{@_tubular_bg_dark}}}},nobold,nounderscore,noitalics]$tab_start#[fg=#{?#{@active_window_zoomed},#{@_tubular_zoom_color},#{?client_prefix,#{@_tubular_prefix_color},#{?pane_in_mode,#{@_tubular_copy_color},#{?window_zoomed_flag,#{@_tubular_zoom_color},#{@_tubular_bg_dark}}}}},bg=#{?#{||:#{@active_window_zoomed},#{||:#{@active_pane_in_mode},#{client_prefix}}},#{@_tubular_bg_dark},#{@_tubular_active_color}}]$window_tab_text#[fg=#{@_tubular_bg_dark}]#[fg=#{?client_prefix,#{@_tubular_prefix_fg},#{?@active_pane_in_mode,#{@_tubular_copy_fg},#{?@active_window_zoomed,#{@_tubular_zoom_fg},#{@_tubular_active_color}}}},bg=#{?client_prefix,#{@_tubular_prefix_color},#{?pane_in_mode,#{@_tubular_copy_color},#{?@active_window_zoomed,#{@_tubular_zoom_color},default}}}]$tab_end"
+tmux set-window-option -g window-status-current-format "#[fg=#{?client_prefix,#{@_tubular_prefix_fg},#{?@active_window_zoomed,#{@_tubular_zoom_fg},#{?@active_pane_in_mode,#{@_tubular_copy_fg},#{@_tubular_active_color}}}},bg=#{?client_prefix,#{@_tubular_prefix_color},#{?@active_pane_in_mode,#{@_tubular_copy_color},#{?@active_window_zoomed,#{@_tubular_zoom_color},#{@_tubular_bg_dark}}}},nobold,nounderscore,noitalics]$tab_start#[fg=#{?#{@active_window_zoomed},#{@_tubular_zoom_color},#{?client_prefix,#{@tubular_status_bg},#{?pane_in_mode,#{@_tubular_copy_color},#{?window_zoomed_flag,#{@_tubular_zoom_color},#{@_tubular_bg_dark}}}}},bg=#{?#{||:#{@active_window_zoomed},#{||:#{@active_pane_in_mode},#{client_prefix}}},#{@tubular_status_fg},#{@_tubular_active_color}}]$window_tab_text#[fg=#{@_tubular_bg_dark}]#[fg=#{?client_prefix,#{@_tubular_prefix_fg},#{?@active_pane_in_mode,#{@_tubular_copy_fg},#{?@active_window_zoomed,#{@_tubular_zoom_fg},#{@_tubular_active_color}}}},bg=#{?client_prefix,#{@_tubular_prefix_color},#{?pane_in_mode,#{@_tubular_copy_color},#{?@active_window_zoomed,#{@_tubular_zoom_color},default}}}]$tab_end"
 
 # Inactive window format - using tmux option references
 tmux set-window-option -g window-status-format "#[fg=#{?client_prefix,#{@_tubular_prefix_fg},#{?@active_pane_in_mode,#{@_tubular_copy_fg},#{?@active_window_zoomed,#{@_tubular_zoom_fg},#{?pane_in_mode,#{@_tubular_copy_color},#{@_tubular_fg}}}}},bg=#{?client_prefix,#{@_tubular_prefix_color},#{?@active_pane_in_mode,#{@_tubular_copy_color},#{?@active_window_zoomed,#{@_tubular_zoom_color},#{@_tubular_bg_dark}}}}]$window_tab_text#[fg=#{?client_prefix,#{@_tubular_prefix_fg},#{?@active_window_zoomed,#{@_tubular_zoom_fg},#{?@active_pane_in_mode,#{@_tubular_copy_fg},#{?window_zoomed_flag,#{@_tubular_zoom_color},#{@_tubular_neutral_hidden}}}}}]#{?client_prefix,#(\$TUBULAR_DIR/scripts/window-index-icon.sh #I),#{?#{>:#{window_panes},1},#{?#{||:#pane_in_mode,#window_zoomed_flag},#(\$TUBULAR_DIR/scripts/pane-count-icon.sh #I),#{?#{||:#{pane_in_mode},#{window_zoomed_flag}},#[fg=#{?window_zoomed_flag,#{@_tubular_zoom_color},#{@_tubular_copy_color}}]$tab_end, }}, }}"
