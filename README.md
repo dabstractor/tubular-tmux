@@ -36,28 +36,16 @@ run-shell ~/.tmux/plugins/tubular-tmux/tubular.tmux
 
 ## Configuration
 
-### Important: Prefix Key Setup
-
-**You must unbind your existing prefix key and let the plugin bind it.**
-
-The plugin handles prefix key binding to enable mode highlighting. Do not bind your prefix key separately.
-
-```tmux
-# In your ~/.tmux.conf, REMOVE or comment out any existing prefix bindings:
-# set -g prefix C-b
-# bind-key C-b send-prefix
-
-# Let the plugin handle it:
-set -g @tubular_prefix_key "C-b"
-```
-
 ### Quick Start
 
 Add configuration options to your `~/.tmux.conf` before loading the plugin:
 
 ```tmux
-# Prefix key (required)
-set -g @tubular_prefix_key "C-b"
+# Optional: Set window list justification (left, centre, or right)
+set -g status-justify "centre"
+
+# Optional: Customize prefix key for mode highlighting
+set -g @tubular_prefix_key "C-Space"
 
 # Optional: Customize colors
 set -g @tubular_prefix_color "#d27e99"
@@ -84,8 +72,8 @@ set -g @tubular_active_color "#7aa89f"    # Active pane border color
 ```tmux
 # Background colors
 set -g @tubular_bg "#1f1f28"              # Main background
-set -g @tubular_bg_dark "#181822"         # Darker areas (status bar)
-set -g @tubular_bg_light "#24242e"        # Lighter areas
+set -g @tubular_bg_max "#181822"          # Darker areas (status bar)
+set -g @tubular_bg_min "#24242e"          # Lighter areas
 
 # Foreground colors
 set -g @tubular_fg "#dcd7ba"              # Main text
@@ -119,6 +107,9 @@ set -g @tubular_tab_end ""
 
 # Window separator
 set -g @tubular_separator "   "
+
+# Zoom indicator
+set -g @tubular_zoom_indicator "+"
 ```
 
 #### Status Bar Color Variables
@@ -217,7 +208,7 @@ set -g @tubular_active_color "#7aa2f7"     # Blue
 
 # Background/Foreground
 set -g @tubular_bg "#1a1b26"
-set -g @tubular_bg_dark "#16161e"
+set -g @tubular_bg_max "#16161e"
 set -g @tubular_fg "#c0caf5"
 set -g @tubular_neutral_visible "#565f89"
 set -g @tubular_neutral_hidden "#3b4261"
@@ -234,7 +225,7 @@ set -g @tubular_active_color "#89b4fa"     # Blue
 
 # Background/Foreground
 set -g @tubular_bg "#1e1e2e"
-set -g @tubular_bg_dark "#11111b"
+set -g @tubular_bg_max "#11111b"
 set -g @tubular_fg "#cdd6f4"
 set -g @tubular_neutral_visible "#7f849c"
 set -g @tubular_neutral_hidden "#45475a"
@@ -267,7 +258,7 @@ set -g @tubular_active_color "#268bd2"     # Blue
 
 # Background/Foreground
 set -g @tubular_bg "#002b36"
-set -g @tubular_bg_dark "#073642"
+set -g @tubular_bg_max "#073642"
 set -g @tubular_fg "#839496"
 set -g @tubular_neutral_visible "#586e75"
 set -g @tubular_neutral_hidden "#073642"
@@ -311,21 +302,15 @@ set -g @plugin 'dabstractor/tubular-tmux'
 
 Then reload: `tmux source ~/.tmux.conf`
 
-### Prefix Key Not Working
+### Prefix Highlighting Not Working
 
-**The plugin must control the prefix key binding.** Remove all existing prefix key bindings from your config:
+If prefix mode highlighting isn't working, ensure you've set the prefix key option:
 
 ```tmux
-# Remove these:
-# set -g prefix C-b
-# unbind C-a
-# bind-key C-b send-prefix
-
-# Use only this:
-set -g @tubular_prefix_key "C-b"
+set -g @tubular_prefix_key "C-Space"  # or your preferred prefix key
 ```
 
-The plugin binds the key internally to enable mode highlighting. Manual prefix bindings will conflict.
+The plugin binds this key to enable mode highlighting. If you have custom prefix bindings elsewhere, they may need adjustment.
 
 ### Icons Not Displaying
 

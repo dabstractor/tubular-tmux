@@ -29,8 +29,8 @@ tmux set-environment -g TUBULAR_DIR "$CURRENT_DIR"
 
 # === Read Color Options ===
 bg=$(get_tmux_option "@tubular_bg" "#1f1f28")
-bg_dark=$(get_tmux_option "@tubular_bg_dark" "#181822")
-bg_light=$(get_tmux_option "@tubular_bg_light" "#24242e")
+bg_max=$(get_tmux_option "@tubular_bg_max" "#181822")
+bg_min=$(get_tmux_option "@tubular_bg_min" "#24242e")
 fg=$(get_tmux_option "@tubular_fg" "#dcd7ba")
 fg_active=$(get_tmux_option "@tubular_fg_active" "#cccccc")
 fg_focus=$(get_tmux_option "@tubular_fg_focus" "#cccccc")
@@ -71,11 +71,15 @@ prefix_extra_bold=$(get_tmux_option "@tubular_prefix_extra_bold" "$active_extra_
 copy_border_lines=$(get_tmux_option "@tubular_copy_border_lines" "heavy")
 copy_extra_bold=$(get_tmux_option "@tubular_copy_extra_bold" "$active_extra_bold")
 
+
+tmux set-option -g @active_pane_in_mode $(tmux display-message -p "#{?pane_in_mode}")
+tmux set-option -g @active_window_zoomed $(tmux display-message -p "#{?window_zoomed_flag}")
+
 # === Store Resolved Colors as Internal Options ===
 # These will be referenced in templates as #{@_tubular_color_name}
 tmux set-option -g @_tubular_bg "$bg"
-tmux set-option -g @_tubular_bg_dark "$bg_dark"
-tmux set-option -g @_tubular_bg_light "$bg_light"
+tmux set-option -g @_tubular_bg_max "$bg_max"
+tmux set-option -g @_tubular_bg_min "$bg_min"
 tmux set-option -g @_tubular_fg "$fg"
 tmux set-option -g @_tubular_fg_active "$fg_active"
 tmux set-option -g @_tubular_fg_focus "$fg_focus"
@@ -95,7 +99,7 @@ tmux set-option -g @_tubular_copy_fg "$copy_fg"
 
 # === Initialize Current Status Bar Colors (updated dynamically by prefix-highlight.sh) ===
 # These represent the "current" status bar colors based on mode (normal/prefix/copy/zoom)
-tmux set-option -g @tubular_status_bg "$bg_dark"
+tmux set-option -g @tubular_status_bg "$bg_max"
 tmux set-option -g @tubular_status_fg "$neutral_visible"
 tmux set-option -g @tubular_status_fg_dim "$neutral_visible"
 tmux set-option -g @tubular_status_fg_muted "$neutral_hidden"
@@ -105,12 +109,18 @@ tmux set-option -g @tubular_pane_icons "$pane_icons"
 tmux set-option -g @tubular_window_icons "$window_icons"
 # tmux set-option -g @tubular_zoom_indicator "$zoom_indicator"
 
+# === Store Section Format Strings ===
+# These are used by status-format[0] for accurate measurement
+tmux set-option -g @left-section '#{T:status-left}'
+tmux set-option -g @right-section '#{T:status-right}'
+tmux set-option -g @window-section '#{W:#[range=window|#{window_index} #{window-status-style}]#{T:window-status-format}#[norange default]#{?window_end_flag,,#[fg=#{T:@window-status-fg},bg=#{T:@window-status-bg}]#{window-status-separator}},#[range=window|#{window_index} list=focus #{window-status-style}]#{T:window-status-current-format}#[norange default]#{?window_end_flag,,#[fg=#{T:@window-status-fg},bg=#{T:@window-status-bg}]#{window-status-separator}}}'
+
 # === Store Colors for Prefix Highlighting Script ===
 tmux set-option -g @prefix_highlight_color "$prefix_color"
-tmux set-option -g @prefix_normal_color "$bg_dark"
+tmux set-option -g @prefix_normal_color "$bg_max"
 tmux set-option -g @prefix_normal_pane_color "$active_color"
 tmux set-option -g @prefix_window_active_style_normal "fg=$fg,bg=$bg"
-tmux set-option -g @prefix_window_active_style_highlight "fg=$fg_focus,bg=$bg_light"
+tmux set-option -g @prefix_window_active_style_highlight "fg=$fg_focus,bg=$bg_min"
 
 tmux set-option -g @copy_mode_color "$copy_color"
 tmux set-option -g @copy_mode_pane_color "$copy_color"
@@ -133,52 +143,145 @@ tmux set-option -g @copy_extra_bold "$copy_extra_bold"
 
 # === Apply Base Styling ===
 tmux set-option -g status "on"
-tmux set-option -g status-bg "$bg_dark"
-tmux set-option -g status-justify "centre"
-tmux set-option -g status-left-length "100"
-tmux set-option -g status-right-length "10000"
+tmux set-option -g status-bg "$bg_max"
+# tmux set-option -g status-bg "#{?client_prefix,#ff0000,$bg_max}"
 
-tmux set-window-option -g window-status-activity-style "fg=$fg,bg=$bg_dark,none"
+tmux set-window-option -g window-status-activity-style "fg=$fg,bg=$bg_max,none"
 tmux set-window-option -g window-status-separator "$separator"
-tmux set-window-option -g window-status-style "fg=$fg,bg=$bg_dark,none"
+# tmux set-window-option -g window-status-separator ""
+tmux set-window-option -g window-status-style "fg=${?client_prefix,#{@_tubular_prefix_color},#{?pane_in_mode,#{@_tubular_copy_color},#{@tubular_active_color}}},bg=$bg_max,none"
 
 tmux set-option -g message-style "fg=$bg,bg=$active_color,align=centre"
 tmux set-option -g message-command-style "fg=$bg,bg=$active_color,align=centre"
 
-tmux set-option -g pane-active-border-style "fg=$active_color,bg=$active_color"
-tmux set-option -g pane-border-style "fg=$neutral_hidden,bg=$bg_dark"
-tmux set-option -g pane-border-lines heavy
-tmux set-option -g window-style "fg=$neutral_visible,bg=$bg_dark"
-tmux set-option -g window-active-style "fg=$fg,bg=$bg"
+# tmux set-option -g pane-active-border-style "fg=$active_color,bg=$active_color"
+
+# tmux set-option -g pane-active-border-style "fg=#{?client_prefix,#{@_tubular_prefix_color},#{?@active_pane_in_mode,#{@_tubular_copy_color},#{@tubular_active_color}}},bg=#{?#{@tubular_active_extra_bold},#{?client_prefix,#{@_tubular_prefix_color},#{?@active_pane_in_mode,@_tubular_copy_color,#{@_tubular_active_color}}},$tubular_bg_max}"
+tmux set-option -g pane-active-border-style "fg=#{?client_prefix,#{@_tubular_prefix_color},#{?pane_in_mode,#{@_tubular_copy_color},#{@tubular_active_color}}},bg=#{?client_prefix,#{?#{@tubular_prefix_extra_bold},#{@_tubular_prefix_color},#{@_tubular_bg_max}},#{?pane_in_mode,#{?#{@tubular_copy_extra_bold},#{@_tubular_copy_color},#{@_tubular_bg_max}},#{?#{@tubular_active_extra_bold},#{@_tubular_active_color},#{@_tubular_bg_max}}}}"
+
+##{?#{@tubular_active_extra_bold},#{?client_prefix,#{@_tubular_prefix_color},#{?@active_window_zoomed,#{@_tubular_zoom_color},#{@tubular_active_color}}},#{@_tubular_bg}}"
+tmux set-option -g pane-border-style "fg=#{?client_prefix,$bg_min,$neutral_hidden},bg=#{?#{@tubular_normal_extra_bold},$neutral_hidden,$bg_max}"
+# tmux set-option -g pane-border-style "fg=$neutral_hidden,bg=#{?client_prefix,$neutral_hidden,$bg_max}"
+tmux set-option -g pane-border-lines "#{?client_prefix?,heavy,heavy}"
+tmux set-option -g window-style "fg=$neutral_visible,bg=$bg_max"
+# tmux set-option -g window-active-style "fg=$fg,bg=$bg"
+# tmux set-option -g win16kdow-active-style "fg=#{?pane_in_mode,#f0ff0f,$fg},bg=#{?#{!=:client_prefix},$neutral_hidden,$bg}"
+
+tmux set-option -g window-active-style "fg=#{?pane_in_mode,#f0ff0f,$fg},bg=#{?#{!=:client_prefix},$neutral_hidden,$bg}"
 
 tmux set-window-option -g clock-mode-colour "$active_color"
-tmux set-window-option -g mode-style "fg=$bg_dark bg=$copy_color bold"
+tmux set-window-option -g mode-style "fg=$bg_max bg=$copy_color bold"
+
+tmux set-option -g @window-status-bg "#{?client_prefix,#{@_tubular_prefix_color},#{?@active_pane_in_mode,#{@_tubular_copy_color},#{?@active_window_zoomed,#{@_tubular_zoom_color},#{@_tubular_bg_max}}}}"
+tmux set-option -g @window-status-fg "#{?client_prefix,#{@_tubular_prefix_fg},#{?@pane_in_mode,#{@_tubular_copy_fg},#{?@active_window_zoomed,#{@_tubular_zoom_fg},#{@_tubular_neutral_visible}}}}"
+# tmux set-option -g @window-status-fg "#000000"
 
 # === Build Status Line Content ===
 # Status left - using tmux option references for dynamic colors
-tmux set-option -g status-left "#[fg=#{?client_prefix,#{@_tubular_prefix_fg},#{?pane_in_mode,#{@_tubular_copy_fg},#{?window_zoomed_flag,#{@_tubular_zoom_fg},#{@_tubular_neutral_visible}}}},bg=#{?client_prefix,#{@_tubular_prefix_color},#{?pane_in_mode,#{@_tubular_copy_color},#{?window_zoomed_flag,#{@_tubular_zoom_color},#{@_tubular_bg_dark}}}},nobold]$status_left_text"
+tmux set-option -g status-left "#[fg=#{?client_prefix,#{@_tubular_prefix_fg},#{?pane_in_mode,#{@_tubular_copy_fg},#{?window_zoomed_flag,#{@_tubular_zoom_fg},#{@_tubular_neutral_visible}}}},bg=#{?client_prefix,#{@_tubular_prefix_color},#{?pane_in_mode,#{@_tubular_copy_color},#{?window_zoomed_flag,#{@_tubular_zoom_color},#{@_tubular_bg_max}}}},nobold]$status_left_text"
 
 # Status right - using tmux option references for dynamic colors
-tmux set-option -g status-right "#[fg=#{?client_prefix,#{@_tubular_prefix_fg},#{?pane_in_mode,#{@_tubular_copy_fg},#{?window_zoomed_flag,#{@_tubular_zoom_fg},#{@_tubular_neutral_visible}}}},bg=#{?client_prefix,#{@_tubular_prefix_color},#{?pane_in_mode,#{@_tubular_copy_color},#{?window_zoomed_flag,#{@_tubular_zoom_color},#{@_tubular_bg_dark}}}}]$status_right_text"
+tmux set-option -g status-right "#[fg=#{?client_prefix,#{@_tubular_prefix_fg},#{?pane_in_mode,#{@_tubular_copy_fg},#{?window_zoomed_flag,#{@_tubular_zoom_fg},#{@_tubular_neutral_visible}}}},bg=#{?client_prefix,#{@_tubular_prefix_color},#{?pane_in_mode,#{@_tubular_copy_color},#{?window_zoomed_flag,#{@_tubular_zoom_color},#{@_tubular_bg_max}}}}]$status_right_text"
 
 # Active window format - using tmux option references
-tmux set-window-option -g window-status-current-format "#[fg=#{?client_prefix,#{@_tubular_prefix_fg},#{?@active_window_zoomed,#{@_tubular_zoom_fg},#{?@active_pane_in_mode,#{@_tubular_copy_fg},#{@_tubular_active_color}}}},bg=#{?client_prefix,#{@_tubular_prefix_color},#{?@active_pane_in_mode,#{@_tubular_copy_color},#{?@active_window_zoomed,#{@_tubular_zoom_color},#{@_tubular_bg_dark}}}},nobold,nounderscore,noitalics]$tab_start#[fg=#{?#{@active_window_zoomed},#{@_tubular_zoom_color},#{?client_prefix,#{@tubular_status_bg},#{?pane_in_mode,#{@_tubular_copy_color},#{?window_zoomed_flag,#{@_tubular_zoom_color},#{@_tubular_bg_dark}}}}},bg=#{?#{||:#{@active_window_zoomed},#{||:#{@active_pane_in_mode},#{client_prefix}}},#{@tubular_status_fg},#{@_tubular_active_color}}]$window_tab_text#[fg=#{@_tubular_bg_dark}]#[fg=#{?client_prefix,#{@_tubular_prefix_fg},#{?@active_pane_in_mode,#{@_tubular_copy_fg},#{?@active_window_zoomed,#{@_tubular_zoom_fg},#{@_tubular_active_color}}}},bg=#{?client_prefix,#{@_tubular_prefix_color},#{?pane_in_mode,#{@_tubular_copy_color},#{?@active_window_zoomed,#{@_tubular_zoom_color},default}}}]$tab_end"
+tmux set-window-option -g window-status-current-format "#[fg=#{?client_prefix,#{@_tubular_prefix_fg},#{?@active_window_zoomed,#{@_tubular_zoom_fg},#{?pane_in_mode,#{@_tubular_copy_fg},#{@_tubular_active_color}}}},bg=#{?client_prefix,#{@_tubular_prefix_color},#{?pane_in_mode,#{@_tubular_copy_color},#{?@active_window_zoomed,#{@_tubular_zoom_color},#{@_tubular_bg_max}}}},nobold,nounderscore,noitalics]\
+$tab_start#[fg=#{?client_prefix,#{@tubular_status_bg},#{?pane_in_mode,#{@_tubular_copy_color},#{?window_zoomed_flag,#{@_tubular_zoom_color},#{@_tubular_bg_max}}}},bg=#{?client_prefix,#{@_tubular_bg},#{?pane_in_mode,#{@_tubular_bg},#{@_tubular_active_color}}}]\
+$window_tab_text#[fg=#{@_tubular_bg_max}]\
+#[fg=#{?client_prefix,#{@_tubular_prefix_fg},#{?pane_in_mode,#{@_tubular_copy_fg},#{?@active_window_zoomed,#{@_tubular_zoom_fg},#{@_tubular_active_color}}}},\
+bg=#{?client_prefix,#{@_tubular_prefix_color},#{?pane_in_mode,#{@_tubular_copy_color},#{?@active_window_zoomed,#{@_tubular_zoom_color},default}}}]\
+$tab_end"
 
-# Inactive window format - using tmux option references
-tmux set-window-option -g window-status-format "#[fg=#{?client_prefix,#{@_tubular_prefix_fg},#{?@active_pane_in_mode,#{@_tubular_copy_fg},#{?@active_window_zoomed,#{@_tubular_zoom_fg},#{?pane_in_mode,#{@_tubular_copy_color},#{@_tubular_fg}}}}},bg=#{?client_prefix,#{@_tubular_prefix_color},#{?@active_pane_in_mode,#{@_tubular_copy_color},#{?@active_window_zoomed,#{@_tubular_zoom_color},#{@_tubular_bg_dark}}}}]$window_tab_text#[fg=#{?client_prefix,#{@_tubular_prefix_fg},#{?@active_window_zoomed,#{@_tubular_zoom_fg},#{?@active_pane_in_mode,#{@_tubular_copy_fg},#{?window_zoomed_flag,#{@_tubular_zoom_color},#{@_tubular_neutral_hidden}}}}}]#{?client_prefix,#(\$TUBULAR_DIR/scripts/window-index-icon.sh #I),#{?#{>:#{window_panes},1},#{?#{||:#pane_in_mode,#window_zoomed_flag},#(\$TUBULAR_DIR/scripts/pane-count-icon.sh #I),#{?#{||:#{pane_in_mode},#{window_zoomed_flag}},#[fg=#{?window_zoomed_flag,#{@_tubular_zoom_color},#{@_tubular_copy_color}}]$tab_end, }}, }}"
+# Inactive window format - Pure tmux conditionals with variable-based icon selectors
+tmux set-window-option -g window-status-format "#[fg=#{?client_prefix,#{@_tubular_prefix_fg},#{?@active_pane_in_mode,#{@_tubular_copy_fg},#{?@active_window_zoomed,#{@_tubular_zoom_fg},#{?@active_pane_in_mode,#{@_tubular_copy_color},#{@_tubular_fg}}}}},bg=#{?client_prefix,#{@_tubular_prefix_color},#{?@active_pane_in_mode,#{@_tubular_copy_color},#{?@active_window_zoomed,#{@_tubular_zoom_color},#{@_tubular_bg_max}}}}]\
+$window_tab_text#[fg=#{?client_prefix,#{@_tubular_prefix_fg},#{?@active_window_zoomed,#{@_tubular_zoom_fg},#{?@active_pane_in_mode,#{@_tubular_copy_fg},#{?window_zoomed_flag,#{@_tubular_zoom_color},#{@_tubular_neutral_hidden}}}}}]\
+#{?client_prefix,#{?#{==:#{window_index},1},#{=1:#{@tubular_window_icons}},#{?#{==:#{window_index},2},#{=1:#{s/#{=1:#{@tubular_window_icons}}//:#{@tubular_window_icons}}},#{?#{==:#{window_index},3},#{=1:#{s/#{=2:#{@tubular_window_icons}}//:#{@tubular_window_icons}}},#{?#{==:#{window_index},4},#{=1:#{s/#{=3:#{@tubular_window_icons}}//:#{@tubular_window_icons}}},#{?#{==:#{window_index},5},#{=1:#{s/#{=4:#{@tubular_window_icons}}//:#{@tubular_window_icons}}},#{?#{==:#{window_index},6},#{=1:#{s/#{=5:#{@tubular_window_icons}}//:#{@tubular_window_icons}}},#{?#{==:#{window_index},7},#{=1:#{s/#{=6:#{@tubular_window_icons}}//:#{@tubular_window_icons}}},#{?#{==:#{window_index},8},#{=1:#{s/#{=7:#{@tubular_window_icons}}//:#{@tubular_window_icons}}},#{?#{==:#{window_index},9},#{=1:#{s/#{=8:#{@tubular_window_icons}}//:#{@tubular_window_icons}}},#{?#{==:#{window_index},0},#{=1:#{s/#{=9:#{@tubular_window_icons}}//:#{@tubular_window_icons}}}, }}}}}}}}}},#{?#{>:#{window_panes},1},#{?#{==:#{window_panes},1},#{=1:#{@tubular_pane_icons}},#{?#{==:#{window_panes},2},#{=1:#{s/#{=1:#{@tubular_pane_icons}}//:#{@tubular_pane_icons}}},#{?#{==:#{window_panes},3},#{=1:#{s/#{=2:#{@tubular_pane_icons}}//:#{@tubular_pane_icons}}},#{?#{==:#{window_panes},4},#{=1:#{s/#{=3:#{@tubular_pane_icons}}//:#{@tubular_pane_icons}}},#{?#{==:#{window_panes},5},#{=1:#{s/#{=4:#{@tubular_pane_icons}}//:#{@tubular_pane_icons}}},#{?#{==:#{window_panes},6},#{=1:#{s/#{=5:#{@tubular_pane_icons}}//:#{@tubular_pane_icons}}},#{?#{==:#{window_panes},7},#{=1:#{s/#{=6:#{@tubular_pane_icons}}//:#{@tubular_pane_icons}}},#{?#{==:#{window_panes},8},#{=1:#{s/#{=7:#{@tubular_pane_icons}}//:#{@tubular_pane_icons}}},#{?#{==:#{window_panes},9},#{=1:#{s/#{=8:#{@tubular_pane_icons}}//:#{@tubular_pane_icons}}},#{?#{==:#{window_panes},0},#{=1:#{s/#{=9:#{@tubular_pane_icons}}//:#{@tubular_pane_icons}}}, }}}}}}}}}}, }}"
 
-# === Set Up Hooks ===
-tmux set-hook -g pane-mode-changed "run-shell '\$TUBULAR_DIR/scripts/prefix-highlight.sh'"
-tmux set-hook -g after-select-window "run-shell '\$TUBULAR_DIR/scripts/prefix-highlight.sh'"
-tmux set-hook -g after-resize-pane "if-shell '[ #{client_prefix} -eq 1 ] || [ #{pane_in_mode} -eq 1 ]' \"run-shell -b '\$TUBULAR_DIR/scripts/prefix-highlight.sh'\""
-tmux set-hook -g after-split-window "run-shell '\$TUBULAR_DIR/scripts/prefix-highlight.sh'"
-tmux set-hook -g after-new-window "run-shell '\$TUBULAR_DIR/scripts/prefix-highlight.sh'"
-tmux set-hook -g after-kill-pane "run-shell '\$TUBULAR_DIR/scripts/prefix-highlight.sh'"
-tmux set-hook -g client-session-changed "run-shell '\$TUBULAR_DIR/scripts/prefix-highlight.sh'"
-tmux set-hook -g session-window-changed "run-shell '\$TUBULAR_DIR/scripts/prefix-highlight.sh'"
+
+# tmux set-option -g status 3
+
+
+
+
+# Status format[0] - Perfect centering with pure tmux conditionals
+# Uses stored sections (@left-section, @window-section, @right-section) for accurate measurement
+# Icon selectors use nested conditionals instead of shell scripts for consistency
+tmux set-option -g status-format[0] "\
+#{E:@left-section}\
+#[bg=#{T:@window-status-bg},fg=#{T:@window-status-fg}]\
+#(justify=\$(tmux display-message -p '#{status-justify}'); \
+left=\$(tmux display-message -p '#{w:#{E:@left-section}}'); \
+right=\$(tmux display-message -p '#{w:#{E:@right-section}}'); \
+client=\$(tmux display-message -p '#{client_width}'); \
+w=\$(tmux display-message -p '#{w:#{E:@window-section}}'); \
+available=\$(( client - left - right )); \
+if [ \"\$justify\" = \"centre\" ]; then \
+  base_pad=\$(( (available - w) / 2 )); \
+  left_pad=\$(( base_pad + 1 )); \
+  center_pos=\$(( left + left_pad + w/2 )); \
+  target_center=\$(( client / 2 )); \
+  diff=\$(( target_center - center_pos )); \
+  left_pad=\$(( left_pad + diff )); \
+  printf '%*s' \$left_pad ''; \
+elif [ \"\$justify\" = \"right\" ]; then \
+  pad=\$(( available - w + 2 )); \
+  printf '%*s' \$pad ''; \
+fi)\
+#{E:@window-section}\
+#[bg=#{T:@window-status-bg},fg=#{T:@window-status-fg}]\
+#(justify=\$(tmux display-message -p '#{status-justify}'); \
+left=\$(tmux display-message -p '#{w:#{E:@left-section}}'); \
+right=\$(tmux display-message -p '#{w:#{E:@right-section}}'); \
+client=\$(tmux display-message -p '#{client_width}'); \
+w=\$(tmux display-message -p '#{w:#{E:@window-section}}'); \
+available=\$(( client - left - right )); \
+if [ \"\$justify\" = \"centre\" ]; then \
+  base_pad=\$(( (available - w) / 2 )); \
+  remainder=\$(( (available - w) % 2 )); \
+  left_pad=\$(( base_pad + 1 )); \
+  right_pad=\$(( base_pad + remainder + 1 )); \
+  center_pos=\$(( left + left_pad + w/2 )); \
+  target_center=\$(( client / 2 )); \
+  diff=\$(( target_center - center_pos )); \
+  right_pad=\$(( right_pad - diff )); \
+  printf '%*s' \$right_pad ''; \
+elif [ \"\$justify\" = \"left\" ]; then \
+  pad=\$(( available - w + 2 )); \
+  printf '%*s' \$pad ''; \
+fi)\
+#{E:@right-section}"
+
+
+# # === Set Up Hooks ===
+# Inline hooks to update @active_pane_in_mode and @active_window_zoomed
+# These use run-shell to capture format expansion into global variables
+tmux set-hook -g pane-mode-changed[0] \
+  "run-shell 'tmux set -g @active_pane_in_mode \$(tmux display -p \"#{pane_in_mode}\")'"
+tmux set-hook -g pane-mode-changed[1] "refresh-client -S"
+tmux set-hook -g after-select-pane \
+  "run-shell 'tmux set -g @active_pane_in_mode \$(tmux display -p \"#{pane_in_mode}\")'"
+tmux set-hook -g after-select-window[0] \
+  "run-shell 'tmux set -g @active_pane_in_mode \$(tmux display -p \"#{pane_in_mode}\"); tmux set -g @active_window_zoomed \$(tmux display -p \"#{window_zoomed_flag}\")'"
+tmux set-hook -g after-select-window[1] "refresh-client -S"
+tmux set-hook -g after-resize-pane[0] \
+  "run-shell 'tmux set -g @active_window_zoomed \$(tmux display -p \"#{window_zoomed_flag}\")'"
+tmux set-hook -g after-resize-pane[1] "refresh-client -S"
+tmux set-hook -g after-split-window "refresh-client -S"
+tmux set-hook -g after-new-window "refresh-client -S"
+tmux set-hook -g after-kill-pane "refresh-client -S"
+tmux set-hook -g client-session-changed "refresh-client -S"
+tmux set-hook -g session-window-changed "refresh-client -S"
+
+# tmux set-hook -g after-select-window "run-shell '\$TUBULAR_DIR/scripts/prefix-highlght.sh'"
+# tmux set-hook -g after-resize-pane "if-shell '[ #{client_prefix} -eq 1 ] || [ #{pane_in_mode} -eq 1 ]' \"run-shell -b '\$TUBULAR_DIR/scripts/prefix-highlight.sh'\""
+# tmux set-hook -g after-split-window "run-shell '\$TUBULAR_DIR/scripts/prefix-highlight.sh'"
+# tmux set-hook -g after-new-window "run-shell '\$TUBULAR_DIR/scripts/prefix-highlight.sh'"
+# tmux set-hook -g after-kill-pane "run-shell '\$TUBULAR_DIR/scripts/prefix-highlight.sh'"
+# tmux set-hook -g client-session-changed "run-shell '\$TUBULAR_DIR/scripts/prefix-highlight.sh'"
+# tmux set-hook -g session-window-changed "run-shell '\$TUBULAR_DIR/scripts/prefix-highlight.sh'"
 
 # === Handle Prefix Key Binding ===
 prefix_key=$(get_tmux_option "@tubular_prefix_key" "")
 if [ -n "$prefix_key" ]; then
   tmux bind -n "$prefix_key" run-shell "$CURRENT_DIR/scripts/prefix-highlight.sh activate"
 fi
+

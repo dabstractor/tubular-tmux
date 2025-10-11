@@ -65,24 +65,24 @@ if [ "$MODE" = "activate" ]; then
     PREFIX_FG=${PREFIX_FG:-$BG}
     NEUTRAL_VISIBLE=$(tmux show-option -gv @tubular_neutral_visible 2>/dev/null)
     NEUTRAL_HIDDEN=$(tmux show-option -gv @tubular_neutral_hidden 2>/dev/null)
-
-    tmux set -g status-bg "$HIGHLIGHT_COLOR" \; \
-         set -g pane-active-border-style "fg=$HIGHLIGHT_COLOR,bg=$PREFIX_PANE_BG" \; \
-         set -g pane-border-style "fg=$NORMAL_PANE_BORDER_COLOR,bg=$NORMAL_PANE_BORDER_BG" \; \
-         set -g pane-border-lines "$PREFIX_BORDER_LINES" \; \
-         set -g @active_pane_in_mode "0" \; \
+        # set -g status-bg "$HIGHLIGHT_COLOR" \; \
+        # set -g pane-active-border-style "fg=$HIGHLIGHT_COLOR,bg=$PREFIX_PANE_BG" \; \
+        # set -g pane-border-style "fg=$NORMAL_PANE_BORDER_COLOR,bg=$NORMAL_PANE_BORDER_BG" \; \
+        # set -g pane-border-lines "$PREFIX_BORDER_LINES" \; \
+        # set -g @active_pane_in_mode "0" \; \
+    tmux \
          set -g @current_display_mode "prefix" \; \
          set -g @tubular_status_bg "$HIGHLIGHT_COLOR" \; \
          set -g @tubular_status_fg "$PREFIX_FG" \; \
          set -g @tubular_status_fg_dim "$NEUTRAL_VISIBLE" \; \
          set -g @tubular_status_fg_muted "$NEUTRAL_HIDDEN" \; \
-         switch-client -T prefix \; \
-         refresh-client -S
+         switch-client -T prefix \; 
+         # refresh-client -S
 
     # Start polling
     ALREADY_POLLING=$(tmux show-option -gv @prefix_polling 2>/dev/null)
     if [ "$ALREADY_POLLING" != "1" ]; then
-        tmux set -g @prefix_polling "1"
+        tmux set -g @prefix_olling "1"
         tmux run-shell -b "sleep 0.01 && $0 poll 1"
     fi
     exit 0
@@ -182,50 +182,54 @@ CURRENT_MODE=$(tmux show-option -gv @current_display_mode 2>/dev/null)
 if [ "$NEW_MODE" != "$CURRENT_MODE" ]; then
     # Batch ALL tmux set commands into single call - eliminates multiple process spawns
     # Active pane uses mode-specific settings, non-active panes always use normal settings
-    tmux set -g status-bg "$STATUS_BG" \; \
-         set -g pane-active-border-style "fg=$ACTIVE_PANE_FG,bg=$ACTIVE_PANE_BG" \; \
-         set -g pane-border-style "fg=$NORMAL_PANE_BORDER_COLOR,bg=$NORMAL_PANE_BORDER_BG" \; \
-         set -g pane-border-lines "$ACTIVE_PANE_BORDER_LINES" \; \
-         set -g window-active-style "$WINDOW_STYLE" \; \
-         set -g @active_pane_in_mode "$ACTIVE_IN_MODE" \; \
+        # set -g status-bg "$STATUS_BG" \; \
+        # set -g pane-active-border-style "fg=$ACTIVE_PANE_FG,bg=$ACTIVE_PANE_BG" \; \
+        # set -g pane-border-style "fg=$NORMAL_PANE_BORDER_COLOR,bg=$NORMAL_PANE_BORDER_BG" \; \
+        # set -g pane-border-lines "$ACTIVE_PANE_BORDER_LINES" \; \
+        # set -g window-active-style "$WINDOW_STYLE" \; \
+
+    # tmux set -g window-active-style "fg=#{?pane_in_mode,#f0ff0f,#{@_tubular_fg}},bg=#{?#{!=:client_prefix},#{@_tubular_neutral_hidden},#{@_tubular_bg}}"
+
+         # set -g @active_pane_in_mode "$ACTIVE_IN_MODE" \; \
+    tmux \
          set -g @active_window_zoomed "$ACTIVE_ZOOMED" \; \
          set -g @tubular_pane_count "$PANE_COUNT_ICON" \; \
          set -g @current_display_mode "$NEW_MODE" \; \
          set -g @tubular_status_bg "$STATUS_BG" \; \
          set -g @tubular_status_fg "$STATUS_FG" \; \
          set -g @tubular_status_fg_dim "$NEUTRAL_VISIBLE" \; \
-         set -g @tubular_status_fg_muted "$NEUTRAL_HIDDEN" \; \
-         refresh-client -S
+         set -g @tubular_status_fg_muted "$NEUTRAL_HIDDEN" \;
+         # refresh-client -S
 fi
 
-# Adaptive polling: faster initially, slows down over time
-if [ "$NEW_MODE" = "prefix" ]; then
-    # Determine poll interval based on iteration count
-    if [ "$POLL_COUNT" -lt 3 ]; then
-        INTERVAL="0.01"  # 100 Hz for instant response
-    elif [ "$POLL_COUNT" -lt 10 ]; then
-        INTERVAL="0.05"  # 20 Hz after initial burst
-    else
-        INTERVAL="0.1"   # 10 Hz for sustained prefix hold
-    fi
-
-    # Only start polling if not already polling
-    if [ "$POLLING" = "poll" ]; then
-        # Continue the polling loop with incremented counter
-        tmux run-shell -b "sleep $INTERVAL && $0 poll $((POLL_COUNT + 1))"
-    else
-        # Check if already polling (atomic check)
-        ALREADY_POLLING=$(tmux show-option -gv @prefix_polling 2>/dev/null)
-        if [ "$ALREADY_POLLING" != "1" ]; then
-            tmux set -g @prefix_polling "1"
-            tmux run-shell -b "sleep 0.01 && $0 poll 1"
-        fi
-    fi
-else
-    # Clear polling flag when exiting prefix mode
-    if [ "$CURRENT_MODE" = "prefix" ]; then
-        tmux set -g @prefix_polling "0"
-    fi
-fi
+# # Adaptive polling: faster initially, slows down over time
+# if [ "$NEW_MODE" = "prefix" ]; then
+#     # Determine poll interval based on iteration count
+#     if [ "$POLL_COUNT" -lt 3 ]; then
+#         INTERVAL="0.01"  # 100 Hz for instant response
+#     elif [ "$POLL_COUNT" -lt 10 ]; then
+#         INTERVAL="0.05"  # 20 Hz after initial burst
+#     else
+#         INTERVAL="0.1"   # 10 Hz for sustained prefix hold
+#     fi
+#
+#     # Only start polling if not already polling
+#     if [ "$POLLING" = "poll" ]; then
+#         # Continue the polling loop with incremented counter
+#         tmux run-shell -b "sleep $INTERVAL && $0 poll $((POLL_COUNT + 1))"
+#     else
+#         # Check if already polling (atomic check)
+#         ALREADY_POLLING=$(tmux show-option -gv @prefix_polling 2>/dev/null)
+#         if [ "$ALREADY_POLLING" != "1" ]; then
+#             tmux set -g @prefix_polling "1"
+#             tmux run-shell -b "sleep 0.01 && $0 poll 1"
+#         fi
+#     fi
+# else
+#     # Clear polling flag when exiting prefix mode
+#     if [ "$CURRENT_MODE" = "prefix" ]; then
+#         tmux set -g @prefix_polling "0"
+#     fi
+# fi
 
 exit 0
