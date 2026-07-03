@@ -76,13 +76,13 @@ if [ "$MODE" = "activate" ]; then
          set -g @tubular_status_fg "$PREFIX_FG" \; \
          set -g @tubular_status_fg_dim "$NEUTRAL_VISIBLE" \; \
          set -g @tubular_status_fg_muted "$NEUTRAL_HIDDEN" \; \
-         switch-client -T prefix \; 
-         # refresh-client -S
+         switch-client -T prefix \; \
+         refresh-client -S
 
     # Start polling
     ALREADY_POLLING=$(tmux show-option -gv @prefix_polling 2>/dev/null)
     if [ "$ALREADY_POLLING" != "1" ]; then
-        tmux set -g @prefix_olling "1"
+        tmux set -g @prefix_polling "1"
         tmux run-shell -b "sleep 0.01 && $0 poll 1"
     fi
     exit 0
