@@ -1,6 +1,6 @@
 # Tubular TMux
 
-A stylish, highly customizable tmux statusline plugin with Kanagawa theme defaults and dynamic mode highlighting.
+A stylish, highly customizable tmux statusline plugin with dynamic mode highlighting.
 
 ## Features
 
@@ -44,7 +44,11 @@ Add configuration options to your `~/.tmux.conf` before loading the plugin:
 # Optional: Set window list justification (left, centre, or right)
 set -g status-justify "centre"
 
-# Optional: Customize prefix key for mode highlighting
+# REQUIRED for mode highlighting: must match your tmux `prefix`.
+# The plugin takes this key over to light up the whole UI on prefix. It is not
+# auto-detected — if you use a different prefix, set both to the same key:
+#   set -g prefix C-a
+#   set -g @tubular_prefix_key "C-a"
 set -g @tubular_prefix_key "C-Space"
 
 # Optional: Customize colors
@@ -304,13 +308,17 @@ Then reload: `tmux source ~/.tmux.conf`
 
 ### Prefix Highlighting Not Working
 
-If prefix mode highlighting isn't working, ensure you've set the prefix key option:
+Prefix highlighting requires `@tubular_prefix_key`, and it **must match your
+tmux `prefix`**. The plugin sets `prefix None` and rebinds the key itself, so a
+mismatch means the highlight never fires (or your prefix stops working):
 
 ```tmux
-set -g @tubular_prefix_key "C-Space"  # or your preferred prefix key
+set -g prefix C-Space               # your tmux prefix
+set -g @tubular_prefix_key "C-Space"  # tell tubular the same key
 ```
 
-The plugin binds this key to enable mode highlighting. If you have custom prefix bindings elsewhere, they may need adjustment.
+This is not auto-detected: once the plugin takes the key over, the original
+prefix can't be read back on reload, so it must be stated explicitly.
 
 ### Icons Not Displaying
 
@@ -332,4 +340,4 @@ MIT License
 
 ---
 
-**Made with ❤️  for tmux users who want control without complexity**
+**Made with ❤️ for tmux users who want control without complexity**

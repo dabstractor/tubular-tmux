@@ -30,10 +30,10 @@ neutral_visible=$(get_tmux_option "@tubular_neutral_visible" "#787878")
 neutral_hidden=$(get_tmux_option "@tubular_neutral_hidden" "#54546d")
 
 # Mode-specific colors - THE ONLY COLORS THAT MATTER
-zoom_color=$(get_tmux_option "@tubular_zoom_color" "#e6c384")
-copy_color=$(get_tmux_option "@tubular_copy_color" "#98bb6c")
-prefix_color=$(get_tmux_option "@tubular_prefix_color" "#d27e99")
-active_color=$(get_tmux_option "@tubular_active_color" "#7aa89f")
+zoom_color=$(get_tmux_option "@tubular_zoom_color" "#627d9a")
+copy_color=$(get_tmux_option "@tubular_copy_color" "#fffef7")
+prefix_color=$(get_tmux_option "@tubular_prefix_color" "#fffef7")
+active_color=$(get_tmux_option "@tubular_active_color" "#dfc5a4")
 
 # Mode-specific foreground colors (default to @tubular_bg)
 prefix_fg=$(get_tmux_option "@tubular_prefix_fg" "$bg")
@@ -59,6 +59,7 @@ zoom_indicator=$(get_tmux_option "@tubular_zoom_indicator" "+")
 normal_border_lines=$(get_tmux_option "@tubular_normal_border_lines" "single")
 normal_extra_bold=$(get_tmux_option "@tubular_normal_extra_bold" "0")
 active_extra_bold=$(get_tmux_option "@tubular_active_extra_bold" "0")
+# prefix/copy inherit active's bold unless set explicitly (the "cascade")
 prefix_extra_bold=$(get_tmux_option "@tubular_prefix_extra_bold" "$active_extra_bold")
 copy_extra_bold=$(get_tmux_option "@tubular_copy_extra_bold" "$active_extra_bold")
 
@@ -183,10 +184,15 @@ tmux set-hook -gu pane-mode-changed 2>/dev/null
 # === Prefix Handling ===
 # tmux never repaints pane borders when the prefix state changes, and native
 # prefix handling preempts root-table bindings, so we own the key entirely:
-# prefix is None and the key switches tables by hand, then forces a repaint.
-# `Any` catches every key with no binding in the prefix table (Escape, stray
-# keys, ...) and repaints AFTER the table has reset - this is what un-sticks
-# the border. Both are pure tmux commands: no shell, fully synchronous.
+# prefix is set to None and the key switches tables by hand, then forces a
+# repaint. `Any` catches every key with no binding in the prefix table (Escape,
+# stray keys, ...) and repaints AFTER the table has reset - this is what
+# un-sticks the border. Both are pure tmux commands: no shell, fully sync.
+#
+# REQUIRED: set @tubular_prefix_key to your tmux prefix (e.g. "C-Space", "C-b").
+# It must match the `prefix` you set in tmux, since the plugin takes that key
+# over. Auto-detecting it isn't reliable: once the plugin sets prefix to None,
+# a reload can no longer read the original key back.
 prefix_key=$(get_tmux_option "@tubular_prefix_key" "")
 if [ -n "$prefix_key" ]; then
   tmux set-option -g prefix None
