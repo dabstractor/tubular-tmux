@@ -10,14 +10,95 @@
 # repaint (refresh-client) on prefix entry/exit, because tmux redraws the
 # status line on its own when the key table changes but never repaints pane
 # borders.
+#
+# Ownership model: TUBULAR OWNS THE COLOR, YOU OWN THE TEXT.
+#   * Every *-style option is set to the live mode colors, so the whole bar
+#     (and anything you don't explicitly recolor) lights up pink/white/blue/
+#     dark per mode automatically — including your own native status content.
+#   * The TEXT options (status-left, status-right, window list) are only set
+#     by tubular when you ask it to (see @tubular_manage_content below).
+#   * For custom-colored segments, use the {{token}} shortcuts (expanded once
+#     at load time here) or the raw @tubular_* variables — see README.
 
-# Helper function to get tmux option with default
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+# Read a tmux option with a default (empty/unset → default).
 get_tmux_option() {
   local option="$1"
   local default="$2"
-  local value=$(tmux show-option -gqv "$option")
+  local value
+  value=$(tmux show-option -gqv "$option")
   [ -n "$value" ] && echo "$value" || echo "$default"
 }
+
+# Is a user option explicitly set? show-options errors (exit 1) on unknown /
+# unset options, and succeeds (exit 0) even when the option is set to "" — so
+# this reliably distinguishes "user set it" from "user left it alone".
+__tubular_is_set() {
+  tmux show-options -g "$1" >/dev/null 2>&1
+}
+
+# --- Token preprocessor (load-time ONLY) ----------------------------------
+# User content strings (@tubular_status_left_text etc.) may contain {{token}}
+# shortcuts that expand here to the correct tmux format snippet. This runs
+# ONCE, in bash, at load time. The string handed to set-option is a plain tmux
+# format — so NO shell ever runs at render time. Dynamic tokens (mode/pill/
+# icon) inject the required #{E:...}, so users never have to reason about the
+# E: distinction: the token always does the right thing.
+__tubular_tok_names=(
+  mode_bg mode_fg pill_bg pill_fg icon_fg
+  prefix copy zoom active
+  bg bg_max bg_min fg fg_active fg_focus
+  neutral_visible neutral_hidden
+  zoom_indicator
+)
+__tubular_tok_values=(
+  '#{E:@tubular_mode_bg}'      '#{E:@tubular_mode_fg}'
+  '#{E:@tubular_pill_bg}'      '#{E:@tubular_pill_fg}'       '#{E:@tubular_icon_fg}'
+  '#{@tubular_prefix_color}'   '#{@tubular_copy_color}'
+  '#{@tubular_zoom_color}'     '#{@tubular_active_color}'
+  '#{@tubular_bg}'             '#{@tubular_bg_max}'          '#{@tubular_bg_min}'
+  '#{@tubular_fg}'             '#{@tubular_fg_active}'       '#{@tubular_fg_focus}'
+  '#{@tubular_neutral_visible}' '#{@tubular_neutral_hidden}'
+  '#{?window_zoomed_flag,#{@tubular_zoom_indicator},}'
+)
+__tubular_expand_tokens() {
+  local s="$1" i name val pat
+  for i in "${!__tubular_tok_names[@]}"; do
+    name="${__tubular_tok_names[$i]}"
+    val="${__tubular_tok_values[$i]}"
+    pat="{{${name}}}"
+    s="${s//$pat/$val}"
+  done
+  printf '%s' "$s"
+}
+
+# Resolve a content slot. Sets __TUBULAR_RESOLVED (token-expanded text) and
+# returns 0 if tubular should manage the slot, 1 if the native tmux option
+# should be left untouched. Priority:
+#   1) user explicitly set @tubular_<slot>_text  -> use it (token-expanded)
+#   2) @tubular_manage_content == on             -> use the bundled default
+#   3) otherwise                                 -> leave native (return 1)
+__tubular_resolve_content() {
+  local user_opt="$1" default_val="$2" raw
+  if __tubular_is_set "$user_opt"; then
+    raw=$(tmux show-option -gqv "$user_opt")
+    __TUBULAR_RESOLVED=$(__tubular_expand_tokens "$raw")
+    return 0
+  elif [ "$__tubular_manage_content" = "on" ]; then
+    __TUBULAR_RESOLVED=$(__tubular_expand_tokens "$default_val")
+    return 0
+  else
+    __TUBULAR_RESOLVED=""
+    return 1
+  fi
+}
+
+# ---------------------------------------------------------------------------
+# Read options
+# ---------------------------------------------------------------------------
 
 # === Read Color Options ===
 bg=$(get_tmux_option "@tubular_bg" "#1f1f28")
@@ -40,18 +121,29 @@ prefix_fg=$(get_tmux_option "@tubular_prefix_fg" "$bg")
 zoom_fg=$(get_tmux_option "@tubular_zoom_fg" "$bg")
 copy_fg=$(get_tmux_option "@tubular_copy_fg" "$bg")
 
-# === Read Content Options ===
-window_tab_text=$(get_tmux_option "@tubular_window_tab_text" " #W ")
-status_left_text=$(get_tmux_option "@tubular_status_left_text" " #S  ")
-status_right_text=$(get_tmux_option "@tubular_status_right_text" "  󰃰  %I:%M  ")
+# === Read the content-ownership switch ===
+# off (default): tubular sets ONLY colors/styles; your native status content
+#                shows through, fully mode-colored. (The north star.)
+# on           : tubular also provides its bundled content (pills/caps/icons)
+#                for any slot whose @tubular_*_text you did not set explicitly.
+# A slot whose @tubular_*_text IS set is always managed by tubular (token-
+# expanded), regardless of this switch.
+__tubular_manage_content=$(get_tmux_option "@tubular_manage_content" "off")
+case "$__tubular_manage_content" in
+  on|yes|true|1) __tubular_manage_content="on" ;;
+  *)             __tubular_manage_content="off" ;;
+esac
+
+# === Read Content Decoration Options (used only when tubular manages windows)
+separator=$(get_tmux_option "@tubular_separator" "   ")
 tab_start=$(get_tmux_option "@tubular_tab_start" "")
 tab_end=$(get_tmux_option "@tubular_tab_end" "")
-separator=$(get_tmux_option "@tubular_separator" "   ")
 
 # === Read Icon Options ===
 pane_icons=$(get_tmux_option "@tubular_pane_icons" "󰼏󰼐󰼑󰼒󰼓󰼔󰼕󰼖󰼗󰼘")
 window_icons=$(get_tmux_option "@tubular_window_icons" "󰲠󰲢󰲤󰲦󰲨󰲪󰲬󰲮󰲰󰲞")
 zoom_indicator=$(get_tmux_option "@tubular_zoom_indicator" "+")
+bell_icon=$(get_tmux_option "@tubular_bell_icon" "")
 
 # === Read Border Style Options ===
 # Note: pane-border-lines cannot be a format, so the line style is static
@@ -63,7 +155,9 @@ active_extra_bold=$(get_tmux_option "@tubular_active_extra_bold" "0")
 prefix_extra_bold=$(get_tmux_option "@tubular_prefix_extra_bold" "$active_extra_bold")
 copy_extra_bold=$(get_tmux_option "@tubular_copy_extra_bold" "$active_extra_bold")
 
-# === Live Mode Expressions (the core of the plugin) ===
+# ---------------------------------------------------------------------------
+# Live Mode Expressions (the core of the plugin)
+# ---------------------------------------------------------------------------
 # These read the ACTIVE window's state from any format context - including
 # while rendering other windows' tabs - by scanning the window list and
 # emitting only the active window's value. No stored state, never stale.
@@ -84,17 +178,21 @@ pill_fg="#{?$any_mode,#{?client_prefix,$prefix_color,#{?$copy_live,$copy_color,$
 # particular window is zoomed), mode fg otherwise.
 icon_fg="#{?client_prefix,$prefix_fg,#{?$copy_live,$copy_fg,#{?$zoom_live,$zoom_fg,#{?window_zoomed_flag,$zoom_color,$neutral_hidden}}}}"
 
-# Store for use in styles/formats via #{E:...} and for user content strings
+# Foreground for an activity/bell tab and the bell glyph: bright (@tubular_fg)
+# on the dark NORMAL bar so the alert reads, but the dark mode fg on the bright
+# PREFIX/COPY/ZOOM bars — white-on-white would be invisible there.
+alert_fg="#{?$any_mode,#{E:@tubular_mode_fg},#{@tubular_fg}}"
+
+# Store for use in styles/formats via #{E:...} and for user content strings.
+# These are the PUBLIC dynamic color variables (reference with #{E:...}).
 tmux set-option -g @tubular_mode_bg "$mode_bg"
 tmux set-option -g @tubular_mode_fg "$mode_fg"
 tmux set-option -g @tubular_pill_bg "$pill_bg"
 tmux set-option -g @tubular_pill_fg "$pill_fg"
 tmux set-option -g @tubular_icon_fg "$icon_fg"
-# Legacy names kept as aliases; these are now live formats (use #{E:...})
-tmux set-option -g @tubular_status_bg "$mode_bg"
-tmux set-option -g @tubular_status_fg "$mode_fg"
 
-# Static color options for user content strings
+# Internal static palette copies (used inside this plugin's own formats; not
+# part of the public API — users reference their own @tubular_* input options).
 tmux set-option -g @_tubular_bg "$bg"
 tmux set-option -g @_tubular_bg_max "$bg_max"
 tmux set-option -g @_tubular_bg_min "$bg_min"
@@ -108,23 +206,31 @@ tmux set-option -g @_tubular_copy_color "$copy_color"
 tmux set-option -g @_tubular_prefix_color "$prefix_color"
 tmux set-option -g @_tubular_active_color "$active_color"
 
-# === Icon Options ===
+# === Icon Options (exposed for the icon-chain formats below) ===
 tmux set-option -g @tubular_pane_icons "$pane_icons"
 tmux set-option -g @tubular_window_icons "$window_icons"
 tmux set-option -g @tubular_zoom_indicator "$zoom_indicator"
 
-# === Base Styling ===
+# ---------------------------------------------------------------------------
+# Base Styling — TUBULAR OWNS ALL THE COLOR HERE
+# ---------------------------------------------------------------------------
+# Every per-segment *-style is set to the live mode colors. Any segment that
+# doesn't declare its own #[fg=/bg=] inherits these, and #[default] snaps back
+# to them — uniformly across left, right, and the whole window list. This is
+# the base layer that makes the entire bar light up as one solid mode block.
 tmux set-option -g status "on"
-# status-style is format-expanded on every redraw: the ENTIRE bar (separators,
-# padding, both ends) takes the mode color as one solid block.
 tmux set-option -g status-style "fg=#{E:@tubular_mode_fg},bg=#{E:@tubular_mode_bg}"
+tmux set-option -g status-left-style "fg=#{E:@tubular_mode_fg},bg=#{E:@tubular_mode_bg}"
+tmux set-option -g status-right-style "fg=#{E:@tubular_mode_fg},bg=#{E:@tubular_mode_bg}"
+tmux set-window-option -g window-status-style "fg=#{E:@tubular_mode_fg},bg=#{E:@tubular_mode_bg}"
+tmux set-window-option -g window-status-current-style "fg=#{E:@tubular_mode_fg},bg=#{E:@tubular_mode_bg}"
+tmux set-window-option -g window-status-last-style "fg=#{E:@tubular_mode_fg},bg=#{E:@tubular_mode_bg}"
+tmux set-window-option -g window-status-activity-style "fg=$alert_fg,bg=#{E:@tubular_mode_bg}"
+tmux set-window-option -g window-status-bell-style "fg=$alert_fg,bg=#{E:@tubular_mode_bg}"
+
 # Back on stock status-format, so the length limits apply again
 tmux set-option -g status-left-length 100
 tmux set-option -g status-right-length 150
-
-tmux set-window-option -g window-status-separator "$separator"
-tmux set-window-option -g window-status-style "fg=#{E:@tubular_mode_fg},bg=#{E:@tubular_mode_bg}"
-tmux set-window-option -g window-status-activity-style "fg=$fg,bg=#{E:@tubular_mode_bg},none"
 
 tmux set-option -g message-style "fg=$bg,bg=$active_color,align=centre"
 tmux set-option -g message-command-style "fg=$bg,bg=$active_color,align=centre"
@@ -135,7 +241,9 @@ tmux set-window-option -g mode-style "fg=$fg,bg=$copy_color,bold"
 tmux set-option -g window-style "fg=$neutral_visible,bg=$bg_max"
 tmux set-option -g window-active-style "fg=#{?pane_in_mode,$fg_focus,$fg},bg=#{?client_prefix,$neutral_hidden,$bg}"
 
-# === Pane Borders ===
+# ---------------------------------------------------------------------------
+# Pane Borders
+# ---------------------------------------------------------------------------
 # extra_bold=1 paints the border background with the border color (a thick
 # solid band); otherwise the background stays dark. Baked here at load time.
 [ "$normal_extra_bold" = "1" ] && normal_border_bg="$neutral_hidden" || normal_border_bg="$bg_max"
@@ -150,23 +258,50 @@ tmux set-option -g pane-border-style "fg=#{?client_prefix,$bg_min,$neutral_hidde
 # and window_zoomed_flag are direct here (no window-list scan needed).
 tmux set-option -g pane-active-border-style "fg=#{?client_prefix,$prefix_color,#{?pane_in_mode,$copy_color,#{?window_zoomed_flag,$zoom_color,$active_color}}},bg=#{?client_prefix,$prefix_border_bg,#{?pane_in_mode,$copy_border_bg,#{?window_zoomed_flag,$zoom_border_bg,$active_border_bg}}}"
 
-# === Status Line Content ===
-tmux set-option -g status-left "#[fg=#{E:@tubular_mode_fg},bg=#{E:@tubular_mode_bg},nobold]$status_left_text"
-tmux set-option -g status-right "#[fg=#{E:@tubular_mode_fg},bg=#{E:@tubular_mode_bg}]$status_right_text"
-
-# Current window: pill with rounded caps sitting on the mode-colored bar
-tmux set-window-option -g window-status-current-format "#[fg=#{E:@tubular_pill_bg},bg=#{E:@tubular_mode_bg},nobold,nounderscore,noitalics]$tab_start#[fg=#{E:@tubular_pill_fg},bg=#{E:@tubular_pill_bg}]$window_tab_text#[fg=#{E:@tubular_pill_bg},bg=#{E:@tubular_mode_bg}]$tab_end"
-
-# Inactive windows: name plus an indicator icon - the window's jump index
-# while the prefix is held, otherwise its pane count (when more than 1 pane).
-# Pure tmux glyph lookup: strip the first N-1 icons, take the next one.
+# ---------------------------------------------------------------------------
+# Inactive-window icon selector (pure tmux glyph lookup)
+# ---------------------------------------------------------------------------
+# The window's jump index while the prefix is held, otherwise its pane count
+# (when more than 1 pane). Strip the first N-1 icons, take the next one.
 window_icon_chain='#{?#{==:#{window_index},1},#{=1:#{@tubular_window_icons}},#{?#{==:#{window_index},2},#{=1:#{s/#{=1:#{@tubular_window_icons}}//:#{@tubular_window_icons}}},#{?#{==:#{window_index},3},#{=1:#{s/#{=2:#{@tubular_window_icons}}//:#{@tubular_window_icons}}},#{?#{==:#{window_index},4},#{=1:#{s/#{=3:#{@tubular_window_icons}}//:#{@tubular_window_icons}}},#{?#{==:#{window_index},5},#{=1:#{s/#{=4:#{@tubular_window_icons}}//:#{@tubular_window_icons}}},#{?#{==:#{window_index},6},#{=1:#{s/#{=5:#{@tubular_window_icons}}//:#{@tubular_window_icons}}},#{?#{==:#{window_index},7},#{=1:#{s/#{=6:#{@tubular_window_icons}}//:#{@tubular_window_icons}}},#{?#{==:#{window_index},8},#{=1:#{s/#{=7:#{@tubular_window_icons}}//:#{@tubular_window_icons}}},#{?#{==:#{window_index},9},#{=1:#{s/#{=8:#{@tubular_window_icons}}//:#{@tubular_window_icons}}},#{?#{==:#{window_index},0},#{=1:#{s/#{=9:#{@tubular_window_icons}}//:#{@tubular_window_icons}}}, }}}}}}}}}}'
 pane_icon_chain='#{?#{==:#{window_panes},1},#{=1:#{@tubular_pane_icons}},#{?#{==:#{window_panes},2},#{=1:#{s/#{=1:#{@tubular_pane_icons}}//:#{@tubular_pane_icons}}},#{?#{==:#{window_panes},3},#{=1:#{s/#{=2:#{@tubular_pane_icons}}//:#{@tubular_pane_icons}}},#{?#{==:#{window_panes},4},#{=1:#{s/#{=3:#{@tubular_pane_icons}}//:#{@tubular_pane_icons}}},#{?#{==:#{window_panes},5},#{=1:#{s/#{=4:#{@tubular_pane_icons}}//:#{@tubular_pane_icons}}},#{?#{==:#{window_panes},6},#{=1:#{s/#{=5:#{@tubular_pane_icons}}//:#{@tubular_pane_icons}}},#{?#{==:#{window_panes},7},#{=1:#{s/#{=6:#{@tubular_pane_icons}}//:#{@tubular_pane_icons}}},#{?#{==:#{window_panes},8},#{=1:#{s/#{=7:#{@tubular_pane_icons}}//:#{@tubular_pane_icons}}},#{?#{==:#{window_panes},9},#{=1:#{s/#{=8:#{@tubular_pane_icons}}//:#{@tubular_pane_icons}}},#{?#{==:#{window_panes},0},#{=1:#{s/#{=9:#{@tubular_pane_icons}}//:#{@tubular_pane_icons}}}, }}}}}}}}}}'
-icon_selector="#{?client_prefix,$window_icon_chain,#{?#{>:#{window_panes},1},$pane_icon_chain, }}"
+icon_selector="#{?window_bell_flag,$bell_icon,#{?client_prefix,$window_icon_chain,#{?#{>:#{window_panes},1},$pane_icon_chain, }}}"
 
-tmux set-window-option -g window-status-format "#[fg=#{E:@tubular_mode_fg},bg=#{E:@tubular_mode_bg}]$window_tab_text#[fg=#{E:@tubular_icon_fg}]$icon_selector"
+# ---------------------------------------------------------------------------
+# Status Line Content — YOU OWN THE TEXT
+# ---------------------------------------------------------------------------
+# Per-slot model (see __tubular_resolve_content): tubular sets a content option
+# only if (a) you explicitly set its @tubular_*_text, or (b) manage_content is
+# on. Otherwise the option is left untouched, so your own native content shows
+# through — fully colored by the *-style base layer above.
 
-# === Clean Up Legacy Machinery (running servers upgrading in place) ===
+# status-left
+if __tubular_resolve_content "@tubular_status_left_text" " #S  "; then
+  tmux set-option -g status-left "#[fg=#{E:@tubular_mode_fg},bg=#{E:@tubular_mode_bg},nobold]$__TUBULAR_RESOLVED"
+fi
+
+# status-right
+if __tubular_resolve_content "@tubular_status_right_text" "  󰃰  %I:%M  "; then
+  tmux set-option -g status-right "#[fg=#{E:@tubular_mode_fg},bg=#{E:@tubular_mode_bg}]$__TUBULAR_RESOLVED"
+fi
+
+# Window list (tab text wrapped in the rounded-pill caps; native if unmanaged)
+if __tubular_resolve_content "@tubular_window_tab_text" " #W "; then
+  tmux set-window-option -g window-status-separator "$separator"
+  # Current window: pill with rounded caps sitting on the mode-colored bar
+  tmux set-window-option -g window-status-current-format "#[fg=#{E:@tubular_pill_bg},bg=#{E:@tubular_mode_bg},nobold,nounderscore,noitalics]$tab_start#[fg=#{E:@tubular_pill_fg},bg=#{E:@tubular_pill_bg}]$__TUBULAR_RESOLVED#[fg=#{E:@tubular_pill_bg},bg=#{E:@tubular_mode_bg}]$tab_end"
+  # Inactive windows: name plus an indicator icon — a bell glyph when the
+  # window has a bell flag (so you can tell a bell apart from plain activity,
+  # even with only two tabs), else the jump-index under prefix, else its pane
+  # count when >1. Leads with #[default] so the tab inherits its *-style (mode
+  # colors normally; a brighter fg for activity or a bell) rather than
+  # hardcoding them inline — that's what lets activity/bell-style take effect.
+  tmux set-window-option -g window-status-format "#[default]$__TUBULAR_RESOLVED#[fg=#{?window_bell_flag,$alert_fg,#{E:@tubular_icon_fg}}]$icon_selector"
+fi
+
+# ---------------------------------------------------------------------------
+# Clean Up Legacy Machinery (running servers upgrading in place)
+# ---------------------------------------------------------------------------
 # (unset the whole array: unsetting a single index deletes it instead of
 # restoring the default entry)
 tmux set-option -gu status-format 2>/dev/null
@@ -181,7 +316,9 @@ tmux set-option -gu @window-status-bg 2>/dev/null
 tmux set-option -gu @window-status-fg 2>/dev/null
 tmux set-hook -gu pane-mode-changed 2>/dev/null
 
-# === Prefix Handling ===
+# ---------------------------------------------------------------------------
+# Prefix Handling
+# ---------------------------------------------------------------------------
 # tmux never repaints pane borders when the prefix state changes, and native
 # prefix handling preempts root-table bindings, so we own the key entirely:
 # prefix is set to None and the key switches tables by hand, then forces a
