@@ -105,16 +105,16 @@ bg=$(get_tmux_option "@tubular_bg" "#1f1f28")
 bg_max=$(get_tmux_option "@tubular_bg_max" "#181822")
 bg_min=$(get_tmux_option "@tubular_bg_min" "#24242e")
 fg=$(get_tmux_option "@tubular_fg" "#dcd7ba")
-fg_active=$(get_tmux_option "@tubular_fg_active" "#cccccc")
+fg_active=$(get_tmux_option "@tubular_fg_active" "#cde4ed")
 fg_focus=$(get_tmux_option "@tubular_fg_focus" "#dddddd")
 neutral_visible=$(get_tmux_option "@tubular_neutral_visible" "#787878")
 neutral_hidden=$(get_tmux_option "@tubular_neutral_hidden" "#54546d")
 
 # Mode-specific colors - THE ONLY COLORS THAT MATTER
-zoom_color=$(get_tmux_option "@tubular_zoom_color" "#627d9a")
-copy_color=$(get_tmux_option "@tubular_copy_color" "#fffef7")
-prefix_color=$(get_tmux_option "@tubular_prefix_color" "#fffef7")
-active_color=$(get_tmux_option "@tubular_active_color" "#dfc5a4")
+zoom_color=$(get_tmux_option "@tubular_zoom_color" "#3d7ba9")
+copy_color=$(get_tmux_option "@tubular_copy_color" "#e1cc79")
+prefix_color=$(get_tmux_option "@tubular_prefix_color" "#d9c1a6")
+active_color=$(get_tmux_option "@tubular_active_color" "#a2c9d7")
 
 # Mode-specific foreground colors (default to @tubular_bg)
 prefix_fg=$(get_tmux_option "@tubular_prefix_fg" "$bg")
@@ -136,8 +136,8 @@ esac
 
 # === Read Content Decoration Options (used only when tubular manages windows)
 separator=$(get_tmux_option "@tubular_separator" "   ")
-tab_start=$(get_tmux_option "@tubular_tab_start" "")
-tab_end=$(get_tmux_option "@tubular_tab_end" "")
+tab_start=$(get_tmux_option "@tubular_tab_start" "")
+tab_end=$(get_tmux_option "@tubular_tab_end" "")
 
 # === Read Icon Options ===
 pane_icons=$(get_tmux_option "@tubular_pane_icons" "󰼏󰼐󰼑󰼒󰼓󰼔󰼕󰼖󰼗󰼘")

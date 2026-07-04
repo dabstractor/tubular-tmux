@@ -260,10 +260,10 @@ set -g @tubular_manage_content off   # default. colors only; your text is king.
 ### Mode colors (the ones that light up the bar)
 
 ```tmux
-set -g @tubular_prefix_color "#fffef7"   # bar bg while prefix is active
-set -g @tubular_copy_color   "#fffef7"   # bar bg in copy/selection mode
-set -g @tubular_zoom_color   "#627d9a"   # bar bg when the pane is zoomed
-set -g @tubular_active_color "#dfc5a4"   # active border / current-tab pill
+set -g @tubular_prefix_color "#d9c1a6"   # bar bg while prefix is active
+set -g @tubular_copy_color   "#3d7ba9"   # bar bg in copy/selection mode
+set -g @tubular_zoom_color   "#e1cc79"   # bar bg when the pane is zoomed
+set -g @tubular_active_color "#a2c9d7"   # active border / current-tab pill
 
 # optional: text color on the lit-up bar (defaults to @tubular_bg)
 set -g @tubular_prefix_fg "#1f1f28"
@@ -280,7 +280,7 @@ set -g @tubular_bg              "#1f1f28"  # main background
 set -g @tubular_bg_max          "#181822"  # darker (the resting status bar)
 set -g @tubular_bg_min          "#24242e"  # lighter
 set -g @tubular_fg              "#dcd7ba"  # main text
-set -g @tubular_fg_active       "#cccccc"  # active window text
+set -g @tubular_fg_active       "#cde4ed"  # active window text
 set -g @tubular_fg_focus        "#dddddd"  # focused text
 set -g @tubular_neutral_visible "#787878"  # subdued UI (time, paths)
 set -g @tubular_neutral_hidden  "#54546d"  # faint indicators (pane counts)
@@ -293,10 +293,42 @@ set -g @tubular_status_left_text  " #S  "
 set -g @tubular_status_right_text "  󰃰  %I:%M  "
 set -g @tubular_window_tab_text   " #W "
 set -g @tubular_separator "   "     # between inactive window tabs
-set -g @tubular_tab_start  ""       # cap before the current-window pill
-set -g @tubular_tab_end    ""       # cap after  the current-window pill
+set -g @tubular_tab_start  ""       # cap before the current-window pill (Powerline rounded)
+set -g @tubular_tab_end    ""       # cap after  the current-window pill (Powerline rounded)
 set -g @tubular_zoom_indicator "+"
 ```
+
+#### Tab caps (the rounded pill around the current window)
+
+`@tubular_tab_start` and `@tubular_tab_end` wrap the current-window tab to
+give it its pill shape. The defaults are the Powerline **rounded** half-circles
+(`U+E0B6` / `U+E0B4` — `` / ``), which need a [Nerd Font][] to render.
+
+To use the **sharp** Powerline caps instead:
+
+```tmux
+set -g @tubular_tab_start ""   # U+E0B0
+set -g @tubular_tab_end   ""   # U+E0B2
+```
+
+To use **square** caps:
+
+```tmux
+set -g @tubular_tab_start ""   # U+E0BC
+set -g @tubular_tab_end   ""   # U+E0BE
+```
+
+To go back to a **flat** tab (no caps at all), set them to empty strings:
+
+```tmux
+set -g @tubular_tab_start ""
+set -g @tubular_tab_end   ""
+```
+
+Only the current window is wrapped — inactive tabs always sit flat between
+`@tubular_separator`, regardless of the caps.
+
+[nerd font]: https://www.nerdfonts.com/
 
 ### Icons (Nerd Font glyphs, 10 chars for indices/counts 1–10)
 
