@@ -122,16 +122,18 @@ zoom_fg=$(get_tmux_option "@tubular_zoom_fg" "$bg")
 copy_fg=$(get_tmux_option "@tubular_copy_fg" "$bg")
 
 # === Pane background ===
-# on (default): paint the pane background with @tubular_bg_max (inactive) and
-#               @tubular_bg (active) for a fully opaque, theme-matched look.
-# off         : only set pane FOREGROUND colors — the terminal's own background
-#               (or transparency / bg-image) shows through.
-# Transparency comes from your terminal, not tmux; this switch just decides
-# whether tmux covers it up.
+# on     (default): paint ALL panes — @tubular_bg_max on inactive, @tubular_bg
+#                   on active — for a fully opaque, theme-matched look.
+# active          : paint ONLY the focused pane (@tubular_bg); inactive panes
+#                   stay transparent so the terminal background shows through.
+# off             : paint NO panes — full transparency everywhere.
+# Transparency comes from your terminal, not tmux; this switch decides which
+# panes tmux covers up.
 pane_bg=$(get_tmux_option "@tubular_pane_bg" "on")
 case "$pane_bg" in
-  on|yes|true|1) pane_bg="on" ;;
-  *)            pane_bg="off" ;;
+  on|yes|true|1|all)          pane_bg="on" ;;
+  active|focused|active-only) pane_bg="active" ;;
+  *)                         pane_bg="off" ;;
 esac
 
 # === Read the content-ownership switch ===
@@ -251,17 +253,28 @@ tmux set-option -g message-command-style "fg=$bg,bg=$active_color,align=centre"
 tmux set-window-option -g clock-mode-colour "$active_color"
 tmux set-window-option -g mode-style "fg=$fg,bg=$copy_color,bold"
 
-# Pane interiors: foreground is always themed (dimmer on inactive panes);
-# the background is painted with the theme palette by default (@tubular_pane_bg
-# on). Set @tubular_pane_bg off to leave it to the terminal so transparency /
-# background images pass through.
-if [ "$pane_bg" = "on" ]; then
-  tmux set-option -g window-style "fg=$neutral_visible,bg=$bg_max"
-  tmux set-option -g window-active-style "fg=#{?pane_in_mode,$fg_focus,$fg},bg=#{?client_prefix,$neutral_hidden,$bg}"
-else
-  tmux set-option -g window-style "fg=$neutral_visible"
-  tmux set-option -g window-active-style "fg=#{?pane_in_mode,$fg_focus,$fg}"
-fi
+# Pane interiors: foreground is always themed (dimmer on inactive panes).
+# The background depends on @tubular_pane_bg:
+#   on     -> every pane painted (active = @tubular_bg, inactive = @tubular_bg_max)
+#   active -> only the focused pane painted; inactive panes stay transparent
+#   off    -> no pane painted; full transparency
+# The active pane dims to @tubular_neutral_hidden while the prefix is held,
+# drawing the eye to the lit-up status bar instead.
+active_bg="bg=#{?client_prefix,$neutral_hidden,$bg}"
+case "$pane_bg" in
+  on)
+    tmux set-option -g window-style "fg=$neutral_visible,bg=$bg_max"
+    tmux set-option -g window-active-style "fg=#{?pane_in_mode,$fg_focus,$fg},$active_bg"
+    ;;
+  active)
+    tmux set-option -g window-style "fg=$neutral_visible"
+    tmux set-option -g window-active-style "fg=#{?pane_in_mode,$fg_focus,$fg},$active_bg"
+    ;;
+  off)
+    tmux set-option -g window-style "fg=$neutral_visible"
+    tmux set-option -g window-active-style "fg=#{?pane_in_mode,$fg_focus,$fg}"
+    ;;
+esac
 
 # ---------------------------------------------------------------------------
 # Pane Borders

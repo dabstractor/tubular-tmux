@@ -261,8 +261,8 @@ set -g @tubular_manage_content off   # default. colors only; your text is king.
 
 ```tmux
 set -g @tubular_prefix_color "#d9c1a6"   # bar bg while prefix is active
-set -g @tubular_copy_color   "#3d7ba9"   # bar bg in copy/selection mode
-set -g @tubular_zoom_color   "#e1cc79"   # bar bg when the pane is zoomed
+set -g @tubular_copy_color   "#e1cc79"   # bar bg in copy/selection mode
+set -g @tubular_zoom_color   "#3d7ba9"   # bar bg when the pane is zoomed
 set -g @tubular_active_color "#a2c9d7"   # active border / current-tab pill
 
 # optional: text color on the lit-up bar (defaults to @tubular_bg)
@@ -360,17 +360,24 @@ Tubular paints the tmux pane background by default — inactive panes get
 theme-matched look with no seam between the bar and the pane content. The pane
 *foreground* colors are always themed (dimmer on inactive panes).
 
-If you run your terminal with **transparency** or a **background image** and
-want it to show through the pane content area, turn the pane background off:
+If you run your terminal with **transparency** or a **background image**, three
+modes are available via `@tubular_pane_bg`:
 
 ```tmux
-set -g @tubular_pane_bg off
+set -g @tubular_pane_bg on       # paint every pane (default)
+set -g @tubular_pane_bg active   # paint ONLY the focused pane
+set -g @tubular_pane_bg off      # paint nothing — full transparency
 ```
 
-| `@tubular_pane_bg` | pane background | transparency / bg-image |
-|---|---|---|
-| `on` *(default)* | painted by tmux (`@tubular_bg` / `_bg_max`) | covered |
-| `off` | left to the terminal | **works** |
+| `@tubular_pane_bg` | active pane | inactive panes | transparency through panes |
+|---|---|---|---|
+| `on` *(default)* | painted (`@tubular_bg`) | painted (`@tubular_bg_max`) | covered |
+| `active` | painted (`@tubular_bg`) | left to the terminal | **inactive only** |
+| `off` | left to the terminal | left to the terminal | **everywhere** |
+
+`active` is a popular middle ground: the focused pane reads as a solid themed
+surface while background panes float translucent, keeping context visible
+without competing for attention.
 
 ---
 
