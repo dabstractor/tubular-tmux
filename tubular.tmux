@@ -121,6 +121,19 @@ prefix_fg=$(get_tmux_option "@tubular_prefix_fg" "$bg")
 zoom_fg=$(get_tmux_option "@tubular_zoom_fg" "$bg")
 copy_fg=$(get_tmux_option "@tubular_copy_fg" "$bg")
 
+# === Pane background ===
+# on (default): paint the pane background with @tubular_bg_max (inactive) and
+#               @tubular_bg (active) for a fully opaque, theme-matched look.
+# off         : only set pane FOREGROUND colors — the terminal's own background
+#               (or transparency / bg-image) shows through.
+# Transparency comes from your terminal, not tmux; this switch just decides
+# whether tmux covers it up.
+pane_bg=$(get_tmux_option "@tubular_pane_bg" "on")
+case "$pane_bg" in
+  on|yes|true|1) pane_bg="on" ;;
+  *)            pane_bg="off" ;;
+esac
+
 # === Read the content-ownership switch ===
 # off (default): tubular sets ONLY colors/styles; your native status content
 #                shows through, fully mode-colored. (The north star.)
@@ -238,8 +251,17 @@ tmux set-option -g message-command-style "fg=$bg,bg=$active_color,align=centre"
 tmux set-window-option -g clock-mode-colour "$active_color"
 tmux set-window-option -g mode-style "fg=$fg,bg=$copy_color,bold"
 
-tmux set-option -g window-style "fg=$neutral_visible,bg=$bg_max"
-tmux set-option -g window-active-style "fg=#{?pane_in_mode,$fg_focus,$fg},bg=#{?client_prefix,$neutral_hidden,$bg}"
+# Pane interiors: foreground is always themed (dimmer on inactive panes);
+# the background is painted with the theme palette by default (@tubular_pane_bg
+# on). Set @tubular_pane_bg off to leave it to the terminal so transparency /
+# background images pass through.
+if [ "$pane_bg" = "on" ]; then
+  tmux set-option -g window-style "fg=$neutral_visible,bg=$bg_max"
+  tmux set-option -g window-active-style "fg=#{?pane_in_mode,$fg_focus,$fg},bg=#{?client_prefix,$neutral_hidden,$bg}"
+else
+  tmux set-option -g window-style "fg=$neutral_visible"
+  tmux set-option -g window-active-style "fg=#{?pane_in_mode,$fg_focus,$fg}"
+fi
 
 # ---------------------------------------------------------------------------
 # Pane Borders

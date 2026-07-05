@@ -353,6 +353,25 @@ set -g @tubular_prefix_extra_bold "1"          # active pane, prefix (cascades f
 set -g @tubular_copy_extra_bold   "0"          # active pane, copy   (cascades from active)
 ```
 
+### Pane background & transparency
+
+Tubular paints the tmux pane background by default — inactive panes get
+`@tubular_bg_max`, the active pane gets `@tubular_bg` — for a fully opaque,
+theme-matched look with no seam between the bar and the pane content. The pane
+*foreground* colors are always themed (dimmer on inactive panes).
+
+If you run your terminal with **transparency** or a **background image** and
+want it to show through the pane content area, turn the pane background off:
+
+```tmux
+set -g @tubular_pane_bg off
+```
+
+| `@tubular_pane_bg` | pane background | transparency / bg-image |
+|---|---|---|
+| `on` *(default)* | painted by tmux (`@tubular_bg` / `_bg_max`) | covered |
+| `off` | left to the terminal | **works** |
+
 ---
 
 ## How it works
