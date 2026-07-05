@@ -2,6 +2,8 @@
 
 A tmux status-line theme where **the plugin owns the color and you own the text.**
 
+https://github.com/user-attachments/assets/a266d00f-a3f8-49ab-a8a0-deb83ed26623
+
 Tubular lights up your entire status line — and your pane borders — with the
 current **mode** color: pink while the prefix is held, white in copy mode, blue
 when a pane is zoomed, dark otherwise. It does this by setting every `*-style`
@@ -46,7 +48,7 @@ Tubular **always** paints the whole status line with the current mode color.
 You only decide **who provides the text.** There are three ways to use it —
 pick the one that sounds like you and skip the rest until you want more.
 
-### A. "Leave my status line alone." *(the default)*
+### A. "Leave my status line alone." _(the default)_
 
 You already have a `status-left` / `status-right` / window list you like. Just
 add the plugin and tell it your prefix key — your text stays exactly where it
@@ -100,6 +102,7 @@ tokens expanded). A slot you **don't** set is left to your own native value —
 or, if you also turn on `@tubular_manage_content`, to the bundled default.
 
 > **How the decision is made, per slot** (status-left, status-right, window tab):
+>
 > 1. You set `@tubular_<slot>_text` → tubular renders it (tokens expanded). ✅
 > 2. Else if `@tubular_manage_content` is `on` → tubular renders the bundled default.
 > 3. Else → your native value is left completely untouched.
@@ -119,15 +122,15 @@ Write a token and tubular expands it to the correct tmux snippet **once, at
 load time** — so tmux only ever sees a normal format string (no shell at render
 time). You never have to think about which variables are dynamic:
 
-| Token | Expands to | What it is |
-|---|---|---|
-| `{{mode_bg}}` `{{mode_fg}}` | the current mode's bg / fg | **dynamic** — changes with the mode |
-| `{{pill_bg}}` `{{pill_fg}}` `{{icon_fg}}` | pill / icon colors | **dynamic** |
-| `{{prefix}}` `{{copy}}` `{{zoom}}` `{{active}}` | those mode palette colors | static `#rrggbb` |
-| `{{bg}}` `{{bg_max}}` `{{bg_min}}` | background palette | static |
-| `{{fg}}` `{{fg_active}}` `{{fg_focus}}` | foreground palette | static |
-| `{{neutral_visible}}` `{{neutral_hidden}}` | subdued / faint text | static |
-| `{{zoom_indicator}}` | the zoom indicator char, only when zoomed | convenience widget |
+| Token                                           | Expands to                                | What it is                          |
+| ----------------------------------------------- | ----------------------------------------- | ----------------------------------- |
+| `{{mode_bg}}` `{{mode_fg}}`                     | the current mode's bg / fg                | **dynamic** — changes with the mode |
+| `{{pill_bg}}` `{{pill_fg}}` `{{icon_fg}}`       | pill / icon colors                        | **dynamic**                         |
+| `{{prefix}}` `{{copy}}` `{{zoom}}` `{{active}}` | those mode palette colors                 | static `#rrggbb`                    |
+| `{{bg}}` `{{bg_max}}` `{{bg_min}}`              | background palette                        | static                              |
+| `{{fg}}` `{{fg_active}}` `{{fg_focus}}`         | foreground palette                        | static                              |
+| `{{neutral_visible}}` `{{neutral_hidden}}`      | subdued / faint text                      | static                              |
+| `{{zoom_indicator}}`                            | the zoom indicator char, only when zoomed | convenience widget                  |
 
 ```tmux
 # a copy-colored dot that's the same green in every mode, then back to theme:
@@ -151,7 +154,7 @@ This works because every segment's `*-style` is set to the mode colors, so
 ### The power way: raw variables (and the `E:` rule)
 
 You can also reference the variables directly. There is **one rule that bites
-everyone**: the dynamic variables hold a *conditional*, so they must be
+everyone**: the dynamic variables hold a _conditional_, so they must be
 force-expanded with `#{E:…}`. Static palette colors are plain `#rrggbb` and
 take **no** `E:`.
 
@@ -174,7 +177,7 @@ you.**
 
 ## Bring your own status line
 
-The combination that lets you keep a fully custom status line *and* get the
+The combination that lets you keep a fully custom status line _and_ get the
 mode effects is: leave `@tubular_manage_content` off (the default), set the
 `@tubular_*_text` options for whichever slots you want tubular to render, and
 let the rest fall through to your native tmux values.
@@ -240,6 +243,7 @@ set -g @tubular_bell_icon "󰂚"   # any glyph; default is the Nerd Font bell
 > **Where did that bell come from?** Bells originate from a pane writing `\a` —
 > a finishing build, a chat client, a REPL prompting, etc. — not from tubular.
 > To find the culprit at any moment:
+>
 > ```bash
 > tmux list-windows -a -F '#{session_name}:#{window_index} #{window_name} bell=#{window_bell_flag}'
 > ```
@@ -358,7 +362,7 @@ set -g @tubular_copy_extra_bold   "0"          # active pane, copy   (cascades f
 Tubular paints the tmux pane background by default — inactive panes get
 `@tubular_bg_max`, the active pane gets `@tubular_bg` — for a fully opaque,
 theme-matched look with no seam between the bar and the pane content. The pane
-*foreground* colors are always themed (dimmer on inactive panes).
+_foreground_ colors are always themed (dimmer on inactive panes).
 
 If you run your terminal with **transparency** or a **background image**, three
 modes are available via `@tubular_pane_bg`:
@@ -369,11 +373,11 @@ set -g @tubular_pane_bg active   # paint ONLY the focused pane
 set -g @tubular_pane_bg off      # paint nothing — full transparency
 ```
 
-| `@tubular_pane_bg` | active pane | inactive panes | transparency through panes |
-|---|---|---|---|
-| `on` *(default)* | painted (`@tubular_bg`) | painted (`@tubular_bg_max`) | covered |
-| `active` | painted (`@tubular_bg`) | left to the terminal | **inactive only** |
-| `off` | left to the terminal | left to the terminal | **everywhere** |
+| `@tubular_pane_bg` | active pane             | inactive panes              | transparency through panes |
+| ------------------ | ----------------------- | --------------------------- | -------------------------- |
+| `on` _(default)_   | painted (`@tubular_bg`) | painted (`@tubular_bg_max`) | covered                    |
+| `active`           | painted (`@tubular_bg`) | left to the terminal        | **inactive only**          |
+| `off`              | left to the terminal    | left to the terminal        | **everywhere**             |
 
 `active` is a popular middle ground: the focused pane reads as a solid themed
 surface while background panes float translucent, keeping context visible
@@ -389,7 +393,7 @@ Tubular detects the active window's state on every redraw from inside the
 format strings themselves — no shell, no cached state:
 
 - **prefix** — `client_prefix`
-- **copy** — `#{==:#{W:#{?window_active,#{pane_in_mode},}},1}` (scans the window list so any tab being rendered can read the *active* window's mode)
+- **copy** — `#{==:#{W:#{?window_active,#{pane_in_mode},}},1}` (scans the window list so any tab being rendered can read the _active_ window's mode)
 - **zoom** — `#{m:*Z*,#{W:#{?window_active,#{window_flags},}}}`
 
 The whole bar becomes one solid block of the mode color because `status-style`
