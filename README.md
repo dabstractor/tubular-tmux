@@ -1,18 +1,61 @@
 # Tubular TMux
 
-A tmux status-line theme where **the plugin owns the color and you own the text.**
+A tmux status-line theme that paints the whole bar and the pane borders with
+the color of the mode you're in, so you always know what tmux is about to do
+without reading a thing.
 
 https://github.com/user-attachments/assets/a266d00f-a3f8-49ab-a8a0-deb83ed26623
 
-Tubular lights up your entire status line — and your pane borders — with the
-current **mode** color: pink while the prefix is held, white in copy mode, blue
-when a pane is zoomed, dark otherwise. It does this by setting every `*-style`
-option to a live, mode-reactive color, so whatever text is already in your
-status line (yours, tmux's defaults, or tubular's bundled look) automatically
-inherits the right color on every redraw.
+## Why this exists
 
-Everything in the draw path is a pure tmux **format string**. No shell runs at
-render time — ever — so the bar and borders can never lag behind the real mode.
+tmux is modal. At any moment you're in one of a few states (resting, holding
+the prefix, in copy mode, or zoomed into a pane), and the difference between
+them is the difference between "this keypress runs a command" and "this
+keypress scrolls a buffer." tmux doesn't tell you which state you're in, so
+you find out by pressing a key and watching the wrong thing happen.
+
+You can patch this with a text indicator (`[PREFIX]`, `[COPY]`) and the habit
+of looking at it. That works, but reading costs a slice of attention you were
+spending on your work. Color doesn't.
+
+Your peripheral vision picks up color before your focus lands on it, and a
+learned color association fires before you can name it: the same reason a
+red squiggle reads as "typo" before you've parsed the word, and a green light
+gets your foot off the brake before you've finished scanning the
+intersection. Tubular turns the whole status line, plus every pane border,
+into one large mode signal:
+
+| State        | The whole bar turns |
+| ------------- | ------------------- |
+| Prefix held  | tan                 |
+| Copy mode    | yellow              |
+| Pane zoomed  | blue                |
+| Resting      | dark                |
+
+Colors shown are the defaults; every one is configurable.
+
+This is the point of the plugin. After a day or two the colors stop being
+something you read and start being something you just know. The "wait, am I
+in copy mode?" check drops out of your conscious path entirely, because the
+already told you, in color, before you reached for the keyboard. That freed-up
+attention is the whole reason tubular exists; the rest of this README is about
+how to fit it onto your bar.
+
+## What it does
+
+Tubular paints the whole status line and the pane borders with the current
+mode color: the prefix color while prefix is held, the copy-mode color in copy
+mode, the zoom color when a pane is zoomed, and the resting background
+otherwise. It does this by setting every `*-style` option to the live mode
+color, so whatever text is already in your status line (yours, tmux's
+defaults, or tubular's bundled look) inherits the right color on every redraw.
+
+Everything in the draw path is a tmux format string. No shell runs at render
+time, so the bar and borders can never lag behind the real mode.
+
+**The plugin owns the color; you own the text.** Tubular sets the colors and
+styles. Your existing `status-left`, `status-right`, and window list keep
+their text unless you ask tubular to manage them too (see *Quick start*).
 
 ## Requirements
 
@@ -42,17 +85,17 @@ run-shell ~/.tmux/plugins/tubular-tmux/tubular.tmux
 
 ---
 
-## Quick start: which one are you?
+## Quick start
 
-Tubular **always** paints the whole status line with the current mode color.
-You only decide **who provides the text.** There are three ways to use it —
-pick the one that sounds like you and skip the rest until you want more.
+Tubular always paints the whole status line with the current mode color. You
+only decide who provides the text. There are three ways to use it; pick the
+one that fits and skip the rest until you want more.
 
 ### A. "Leave my status line alone." _(the default)_
 
 You already have a `status-left` / `status-right` / window list you like. Just
-add the plugin and tell it your prefix key — your text stays exactly where it
-is, and lights up with the mode colors on top.
+add the plugin and tell it your prefix key; your text stays exactly where it is
+and picks up the mode colors on top.
 
 ```tmux
 set -g prefix C-Space
@@ -61,7 +104,8 @@ set -g @plugin 'dabstractor/tubular-tmux'
 ```
 
 That's the whole config. Nothing you already have is overwritten. Press your
-prefix and watch the whole bar — your own text included — turn pink.
+prefix and the whole bar, your own text included, switches to the prefix
+color.
 
 ### B. "Give me the bundled look."
 
@@ -79,15 +123,15 @@ customized with its bundled content.
 
 ### C. "My own text, your colors."
 
-You want custom status text that snaps to the theme and tracks the mode, with
-none of the `#{E:...}` ceremony. Set the text **per slot** and use the
-`{{token}}` shortcuts for theme colors:
+You want custom status text that snaps to the theme and tracks the mode
+without hand-writing the `#{E:...}` conditionals. Set the text per slot and use
+the `{{token}}` shortcuts for theme colors:
 
 ```tmux
 set -g prefix C-Space
 set -g @tubular_prefix_key "C-Space"
 
-# custom left: a green dot, then snap back to the mode color, then the session
+# custom left: a copy-colored dot, then snap back to the mode color, then the session
 set -g @tubular_status_left_text  "#S #[fg={{copy}}]●#[default] "
 # custom right: zoom indicator + pane count (only when zoomed), path, clock
 set -g @tubular_status_right_text "#{?window_zoomed_flag,{{zoom_indicator}}#{window_panes} , }#{b:pane_current_path} 󰃰 %I:%M"
@@ -98,8 +142,8 @@ set -g @plugin 'dabstractor/tubular-tmux'
 ```
 
 A slot whose `@tubular_*_text` you **set** is always rendered by tubular (with
-tokens expanded). A slot you **don't** set is left to your own native value —
-or, if you also turn on `@tubular_manage_content`, to the bundled default.
+tokens expanded). A slot you **don't** set is left to your own native value, or to
+the bundled default if you also turn on `@tubular_manage_content`.
 
 > **How the decision is made, per slot** (status-left, status-right, window tab):
 >
@@ -111,20 +155,20 @@ or, if you also turn on `@tubular_manage_content`, to the bundled default.
 
 ## Theme color reference
 
-When you write your own status text (bucket C), you can reach into the theme
-two ways: the **`{{token}}` shortcuts** (easy) or the **raw variables**
-(power). Either works inside `@tubular_status_left_text`,
+When you write your own status text (option C above), the theme exposes two
+ways to reference colors: the `{{token}}` shortcuts, or the raw variables
+directly. Both work inside `@tubular_status_left_text`,
 `@tubular_status_right_text`, and `@tubular_window_tab_text`.
 
 ### The easy way: `{{token}}` shortcuts
 
-Write a token and tubular expands it to the correct tmux snippet **once, at
-load time** — so tmux only ever sees a normal format string (no shell at render
-time). You never have to think about which variables are dynamic:
+Write a token and tubular expands it to the correct tmux snippet once, at load
+time. tmux then only ever sees a normal format string, and no shell runs at
+render time. You never have to think about which variables are dynamic:
 
 | Token                                           | Expands to                                | What it is                          |
 | ----------------------------------------------- | ----------------------------------------- | ----------------------------------- |
-| `{{mode_bg}}` `{{mode_fg}}`                     | the current mode's bg / fg                | **dynamic** — changes with the mode |
+| `{{mode_bg}}` `{{mode_fg}}`                     | the current mode's bg / fg                | **dynamic**: changes with the mode |
 | `{{pill_bg}}` `{{pill_fg}}` `{{icon_fg}}`       | pill / icon colors                        | **dynamic**                         |
 | `{{prefix}}` `{{copy}}` `{{zoom}}` `{{active}}` | those mode palette colors                 | static `#rrggbb`                    |
 | `{{bg}}` `{{bg_max}}` `{{bg_min}}`              | background palette                        | static                              |
@@ -133,15 +177,15 @@ time). You never have to think about which variables are dynamic:
 | `{{zoom_indicator}}`                            | the zoom indicator char, only when zoomed | convenience widget                  |
 
 ```tmux
-# a copy-colored dot that's the same green in every mode, then back to theme:
+# a copy-colored dot that stays the same color in every mode, then back to theme:
 set -g @tubular_status_left_text "#S #[fg={{copy}}]●#[default] "
 ```
 
 ### The `#[default]` trick (no token needed)
 
-The single most useful coloring primitive needs **no token at all**: paint a
-word, then `#[default]` snaps the rest of the segment back to the current mode
-color — dynamically, with no variable reference.
+The most useful coloring primitive needs no token at all. Paint a word, then
+`#[default]` snaps the rest of the segment back to the current mode color,
+dynamically, with no variable reference.
 
 ```tmux
 # red ALERT, then the rest snaps back to whatever the current mode is:
@@ -153,34 +197,34 @@ This works because every segment's `*-style` is set to the mode colors, so
 
 ### The power way: raw variables (and the `E:` rule)
 
-You can also reference the variables directly. There is **one rule that bites
-everyone**: the dynamic variables hold a _conditional_, so they must be
+You can also reference the variables directly. There is one rule that catches
+people: the dynamic variables hold a conditional, so they must be
 force-expanded with `#{E:…}`. Static palette colors are plain `#rrggbb` and
-take **no** `E:`.
+take no `E:`.
 
 ```tmux
-# DYNAMIC  → MUST use E:  (this is the #1 footgun)
+# DYNAMIC  → MUST use E:  (this is the one that catches people)
 #[fg=#{E:@tubular_mode_fg}]     ✅ resolves to the live mode fg
 #[fg=#{@tubular_mode_fg}]       ❌ renders the raw conditional as garbage
 
 # STATIC    → no E: needed
-#[fg=#{@tubular_copy_color}]    ✅ plain #98bb6c
+#[fg=#{@tubular_copy_color}]    ✅ plain #e1cc79
 ```
 
 The dynamic variables are `@tubular_mode_bg`, `@tubular_mode_fg`,
 `@tubular_pill_bg`, `@tubular_pill_fg`, `@tubular_icon_fg`. Everything else in
-the configuration list below is a static literal. **If you'd rather not
-remember this, just use the `{{token}}` shortcuts above — they handle it for
-you.**
+the configuration list below is a static literal. If you'd rather not remember
+the distinction, use the `{{token}}` shortcuts above instead; they handle it
+for you.
 
 ---
 
 ## Bring your own status line
 
-The combination that lets you keep a fully custom status line _and_ get the
-mode effects is: leave `@tubular_manage_content` off (the default), set the
-`@tubular_*_text` options for whichever slots you want tubular to render, and
-let the rest fall through to your native tmux values.
+To keep a fully custom status line and still get the mode effects, leave
+`@tubular_manage_content` off (the default), set the `@tubular_*_text` options
+for whichever slots you want tubular to render, and let the rest fall through
+to your native tmux values.
 
 ```tmux
 set -g @tubular_manage_content off          # don't clobber anything by default
@@ -189,7 +233,7 @@ set -g @tubular_status_right_text "󰃰 %I:%M"
 # window-status-format and separator stay as YOUR native values
 ```
 
-A seamless, fully mode-reactive custom segment:
+A custom segment that tracks the mode:
 
 ```tmux
 # three dots while the prefix is held; otherwise a mode-colored dot + session
@@ -204,21 +248,22 @@ set -g @tubular_status_left_text "\
 
 ## Window alerts (activity & bell)
 
-tubular styles the two per-window alert states tmux tracks — but only your
-**window list** shows them (never status-left/right), and only when more than
-one window is open.
+tubular styles the two per-window alert states tmux tracks, but only your
+window list shows them (never status-left/right), and only when more than one
+window is open.
 
-- **Activity** — a window you're not viewing produced output. Its tab text
+- **Activity**: a window you're not viewing produced output. Its tab text
   turns brighter so you notice it. Window flag: `#`.
-- **Bell** — a window received a bell character (`\a`) — e.g. a build finished
+- **Bell**: a window received a bell character (`\a`), e.g. a build finished
   or a REPL wants input. Its tab gets the same brighter text **plus a bell
   glyph ()** in the icon spot, so you can tell a real bell apart from plain
   activity even with only two tabs. Window flag: `!`.
 
-Both styles are mode-aware: the brighter text shows on the dark **normal** bar
-(where it reads as a clear cue), and snaps back to the mode's normal text color
-on the bright **prefix/copy/zoom** bars — so an alert is never invisible
-(white-on-white). The bell glyph rides along, so it's visible in every mode.
+Both styles are mode-aware. The brighter text shows on the dark normal bar,
+where it reads as a clear cue, and snaps back to the mode's normal text color
+on the bright prefix/copy/zoom bars, so an alert is never invisible
+(white-on-white). The bell glyph rides along, so it stays visible in every
+mode.
 
 Turn the monitors on (activity is off by default in tmux):
 
@@ -240,8 +285,8 @@ alert once you've seen it). The bell glyph is configurable:
 set -g @tubular_bell_icon "󰂚"   # any glyph; default is the Nerd Font bell
 ```
 
-> **Where did that bell come from?** Bells originate from a pane writing `\a` —
-> a finishing build, a chat client, a REPL prompting, etc. — not from tubular.
+> **Where did that bell come from?** Bells originate from a pane writing `\a`
+> (a finishing build, a chat client, a REPL prompting, etc.), not from tubular.
 > To find the culprit at any moment:
 >
 > ```bash
@@ -257,11 +302,11 @@ All options are set **before** the plugin loads. Colors are `#rrggbb`.
 ### The content switch
 
 ```tmux
-set -g @tubular_manage_content off   # default. colors only; your text is king.
+set -g @tubular_manage_content off   # default: colors only, your text is left alone.
 # set to `on` to also get tubular's bundled content for any unset slot.
 ```
 
-### Mode colors (the ones that light up the bar)
+### Mode colors (the bar colors)
 
 ```tmux
 set -g @tubular_prefix_color "#d9c1a6"   # bar bg while prefix is active
@@ -269,7 +314,7 @@ set -g @tubular_copy_color   "#e1cc79"   # bar bg in copy/selection mode
 set -g @tubular_zoom_color   "#3d7ba9"   # bar bg when the pane is zoomed
 set -g @tubular_active_color "#a2c9d7"   # active border / current-tab pill
 
-# optional: text color on the lit-up bar (defaults to @tubular_bg)
+# optional: text color on the mode-colored bar (defaults to @tubular_bg)
 set -g @tubular_prefix_fg "#1f1f28"
 set -g @tubular_copy_fg   "#1f1f28"
 set -g @tubular_zoom_fg   "#1f1f28"
@@ -306,7 +351,7 @@ set -g @tubular_zoom_indicator "+"
 
 `@tubular_tab_start` and `@tubular_tab_end` wrap the current-window tab to
 give it its pill shape. The defaults are the Powerline **rounded** half-circles
-(`U+E0B6` / `U+E0B4` — `` / ``), which need a [Nerd Font][] to render.
+(`U+E0B6` / `U+E0B4`, `` / ``), which need a [Nerd Font][] to render.
 
 To use the **sharp** Powerline caps instead:
 
@@ -329,7 +374,7 @@ set -g @tubular_tab_start ""
 set -g @tubular_tab_end   ""
 ```
 
-Only the current window is wrapped — inactive tabs always sit flat between
+Only the current window is wrapped. Inactive tabs always sit flat between
 `@tubular_separator`, regardless of the caps.
 
 [nerd font]: https://www.nerdfonts.com/
@@ -341,7 +386,7 @@ set -g @tubular_pane_icons   "󰼏󰼐󰼑󰼒󰼓󰼔󰼕󰼖󰼗󰼘"
 set -g @tubular_window_icons "󰲠󰲢󰲤󰲦󰲨󰲪󰲬󰲮󰲰󰲞"
 # circled alternatives:
 # set -g @tubular_pane_icons   "①②③④⑤⑥⑦⑧⑨⑩"
-# set -g @tubular_window_icons "❶❷❸❹❺❼❽❾❿"
+# set -g @tubular_window_icons "❶❷❸❹❺❻❼❽❾❿"
 ```
 
 ### Pane borders
@@ -359,10 +404,10 @@ set -g @tubular_copy_extra_bold   "0"          # active pane, copy   (cascades f
 
 ### Pane background & transparency
 
-Tubular paints the tmux pane background by default — inactive panes get
-`@tubular_bg_max`, the active pane gets `@tubular_bg` — for a fully opaque,
+By default, tubular paints the tmux pane background: inactive panes get
+`@tubular_bg_max` and the active pane gets `@tubular_bg`, for an opaque,
 theme-matched look with no seam between the bar and the pane content. The pane
-_foreground_ colors are always themed (dimmer on inactive panes).
+foreground colors are always themed (dimmer on inactive panes).
 
 If you run your terminal with **transparency** or a **background image**, three
 modes are available via `@tubular_pane_bg`:
@@ -370,7 +415,7 @@ modes are available via `@tubular_pane_bg`:
 ```tmux
 set -g @tubular_pane_bg on       # paint every pane (default)
 set -g @tubular_pane_bg active   # paint ONLY the focused pane
-set -g @tubular_pane_bg off      # paint nothing — full transparency
+set -g @tubular_pane_bg off      # paint nothing (full transparency)
 ```
 
 | `@tubular_pane_bg` | active pane             | inactive panes              | transparency through panes |
@@ -379,9 +424,9 @@ set -g @tubular_pane_bg off      # paint nothing — full transparency
 | `active`           | painted (`@tubular_bg`) | left to the terminal        | **inactive only**          |
 | `off`              | left to the terminal    | left to the terminal        | **everywhere**             |
 
-`active` is a popular middle ground: the focused pane reads as a solid themed
-surface while background panes float translucent, keeping context visible
-without competing for attention.
+`active` is the middle ground: the focused pane is a solid themed surface
+while background panes stay translucent, so context stays visible without
+competing for attention.
 
 ---
 
@@ -390,11 +435,11 @@ without competing for attention.
 ### Mode highlighting
 
 Tubular detects the active window's state on every redraw from inside the
-format strings themselves — no shell, no cached state:
+format strings themselves, with no shell and no cached state:
 
-- **prefix** — `client_prefix`
-- **copy** — `#{==:#{W:#{?window_active,#{pane_in_mode},}},1}` (scans the window list so any tab being rendered can read the _active_ window's mode)
-- **zoom** — `#{m:*Z*,#{W:#{?window_active,#{window_flags},}}}`
+- **prefix**: `client_prefix`
+- **copy**: `#{==:#{W:#{?window_active,#{pane_in_mode},}},1}` (scans the window list so any tab being rendered can read the _active_ window's mode)
+- **zoom**: `#{m:*Z*,#{W:#{?window_active,#{window_flags},}}}`
 
 The whole bar becomes one solid block of the mode color because `status-style`
 and every per-segment `*-style` are set to that color, and segments that don't
@@ -404,9 +449,9 @@ declare their own `#[fg=/bg=]` inherit it.
 
 Earlier versions shelled out for centering and mode detection; the async jank
 against tmux's synchronous format expansion was visible. Everything drawn here
-is now a pure tmux format. The `{{token}}` shortcuts are expanded **once**, in
-bash, when the plugin loads — by render time they're already plain tmux format.
-`run-shell` / `#(...)` in a status format is never used.
+is now a tmux format. The `{{token}}` shortcuts are expanded once, in bash,
+when the plugin loads, so by render time they're already plain tmux format.
+`run-shell` and `#(...)` are never used in a status format.
 
 ---
 
@@ -465,7 +510,7 @@ set -g @tubular_neutral_visible "#586e75" ; set -g @tubular_neutral_hidden "#073
 
 ### Colors not applying
 
-Set options **before** the plugin loads:
+Set options before the plugin loads:
 
 ```tmux
 set -g @tubular_prefix_key "C-b"
@@ -478,9 +523,9 @@ Reload with `tmux source ~/.tmux.conf`.
 
 ### Prefix highlighting not working
 
-Prefix highlighting requires `@tubular_prefix_key`, and it **must match your
-tmux `prefix`** — the plugin sets `prefix None` and rebinds the key itself, so a
-mismatch means the highlight never fires (or your prefix stops working):
+Prefix highlighting requires `@tubular_prefix_key`, and it must match your
+tmux `prefix`. The plugin sets `prefix None` and rebinds the key itself, so a
+mismatch means the highlight never fires, or your prefix stops working:
 
 ```tmux
 set -g prefix C-Space                # your tmux prefix
@@ -492,7 +537,7 @@ prefix can't be read back on reload, so it must be stated explicitly.
 
 ### My `status-bg` / `status-fg` seem to fight the mode colors
 
-They do — the legacy `status-bg`/`status-fg` silently override `status-style`
+They do. The legacy `status-bg`/`status-fg` silently override `status-style`
 and pin the bar. Tubular unsets them on load; make sure nothing in your own
 config sets them afterward.
 
