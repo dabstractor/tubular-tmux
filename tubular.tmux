@@ -97,24 +97,82 @@ __tubular_resolve_content() {
 }
 
 # ---------------------------------------------------------------------------
+# Built-in Themes
+# ---------------------------------------------------------------------------
+# @tubular_theme picks a complete default palette (and a matching style
+# character — border weight, mode boldness) with ONE option. Precedence is
+# strictly layered: any @tubular_* option you set explicitly always wins; the
+# theme only replaces the plugin's built-in defaults underneath it.
+#
+# Themes are FILES: themes/<name>.theme, bash-sourced ONCE at load time
+# (never in the render path). A theme file assigns th_* variables and only
+# needs to define what it changes — anything it omits inherits the kanagawa
+# base below. @tubular_theme accepts either a bare name (resolved against the
+# plugin's themes/ directory) or a path containing a "/" (leading ~ expands),
+# so ANY theme can be dropped in without touching the plugin. To generate a
+# theme file from any tinted-theming/base16 scheme, see
+# scripts/theme-import-base16.sh.
+#
+# Palette rules every bundled preset follows:
+#   * Colors are CANONICAL values from the named scheme — no approximations.
+#   * Zoom is only ever seen on a screen by itself (the zoomed pane fills it),
+#     so when two accents look alike (orange/yellow, blue/cyan) the look-alike
+#     goes on zoom; prefix/copy/normal keep the highest mutual contrast.
+#   * The scheme's most NEUTRAL accent goes on the default pane border
+#     (active), freeing the popping colors for the modes.
+#   * Thin borders in normal mode always pair with fat (extra-bold) borders
+#     in prefix mode, so the mode change reads even without the status bar.
+
+__TUBULAR_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+__tubular_load_theme() {
+  local name="$1" file
+  # kanagawa base: the default palette, and the fallback every partial theme
+  # file inherits from — ink-wash sumi backgrounds, crystalBlue border (the
+  # calm accent), violet/yellow contrast, aqua on zoom.
+  # (themes/kanagawa.theme mirrors these values; keep them in sync.)
+  th_bg="#1f1f28"; th_bg_max="#16161d"; th_bg_min="#2a2a37"
+  th_fg="#dcd7ba"; th_fg_active="#dcd7ba"; th_fg_focus="#dcd7ba"
+  th_neutral_visible="#727169"; th_neutral_hidden="#54546d"
+  th_zoom="#7aa89f"; th_copy="#e6c384"; th_prefix="#957fb8"; th_active="#7e9cd8"
+  th_border_lines="single"; th_normal_xb="0"; th_active_xb="0"
+  th_prefix_xb="1"; th_copy_xb="0"
+
+  [ "$name" = "onedark" ] && name="one-dark"
+  case "$name" in
+    */*) file="${name/#\~/$HOME}" ;;                 # explicit path
+    *)   file="$__TUBULAR_DIR/themes/$name.theme" ;; # bundled / dropped-in
+  esac
+  if [ -f "$file" ]; then
+    . "$file"
+  elif [ "$name" != "kanagawa" ]; then
+    tmux display-message "tubular: theme '$name' not found, using kanagawa"
+  fi
+}
+
+# ---------------------------------------------------------------------------
 # Read options
 # ---------------------------------------------------------------------------
 
-# === Read Color Options ===
-bg=$(get_tmux_option "@tubular_bg" "#1f1f28")
-bg_max=$(get_tmux_option "@tubular_bg_max" "#181822")
-bg_min=$(get_tmux_option "@tubular_bg_min" "#24242e")
-fg=$(get_tmux_option "@tubular_fg" "#dcd7ba")
-fg_active=$(get_tmux_option "@tubular_fg_active" "#cde4ed")
-fg_focus=$(get_tmux_option "@tubular_fg_focus" "#dddddd")
-neutral_visible=$(get_tmux_option "@tubular_neutral_visible" "#787878")
-neutral_hidden=$(get_tmux_option "@tubular_neutral_hidden" "#54546d")
+# === Theme (defaults provider) ===
+theme=$(get_tmux_option "@tubular_theme" "kanagawa")
+__tubular_load_theme "$theme"
+
+# === Read Color Options (explicit user options beat the theme) ===
+bg=$(get_tmux_option "@tubular_bg" "$th_bg")
+bg_max=$(get_tmux_option "@tubular_bg_max" "$th_bg_max")
+bg_min=$(get_tmux_option "@tubular_bg_min" "$th_bg_min")
+fg=$(get_tmux_option "@tubular_fg" "$th_fg")
+fg_active=$(get_tmux_option "@tubular_fg_active" "$th_fg_active")
+fg_focus=$(get_tmux_option "@tubular_fg_focus" "$th_fg_focus")
+neutral_visible=$(get_tmux_option "@tubular_neutral_visible" "$th_neutral_visible")
+neutral_hidden=$(get_tmux_option "@tubular_neutral_hidden" "$th_neutral_hidden")
 
 # Mode-specific colors - THE ONLY COLORS THAT MATTER
-zoom_color=$(get_tmux_option "@tubular_zoom_color" "#3d7ba9")
-copy_color=$(get_tmux_option "@tubular_copy_color" "#e1cc79")
-prefix_color=$(get_tmux_option "@tubular_prefix_color" "#d9c1a6")
-active_color=$(get_tmux_option "@tubular_active_color" "#a2c9d7")
+zoom_color=$(get_tmux_option "@tubular_zoom_color" "$th_zoom")
+copy_color=$(get_tmux_option "@tubular_copy_color" "$th_copy")
+prefix_color=$(get_tmux_option "@tubular_prefix_color" "$th_prefix")
+active_color=$(get_tmux_option "@tubular_active_color" "$th_active")
 
 # Mode-specific foreground colors (default to @tubular_bg)
 prefix_fg=$(get_tmux_option "@tubular_prefix_fg" "$bg")
@@ -163,12 +221,19 @@ bell_icon=$(get_tmux_option "@tubular_bell_icon" "")
 # === Read Border Style Options ===
 # Note: pane-border-lines cannot be a format, so the line style is static
 # (@tubular_normal_border_lines). Only colors/bold change per mode.
-normal_border_lines=$(get_tmux_option "@tubular_normal_border_lines" "single")
-normal_extra_bold=$(get_tmux_option "@tubular_normal_extra_bold" "0")
-active_extra_bold=$(get_tmux_option "@tubular_active_extra_bold" "0")
-# prefix/copy inherit active's bold unless set explicitly (the "cascade")
-prefix_extra_bold=$(get_tmux_option "@tubular_prefix_extra_bold" "$active_extra_bold")
-copy_extra_bold=$(get_tmux_option "@tubular_copy_extra_bold" "$active_extra_bold")
+# Defaults come from the theme's style character (see __tubular_apply_theme).
+normal_border_lines=$(get_tmux_option "@tubular_normal_border_lines" "$th_border_lines")
+normal_extra_bold=$(get_tmux_option "@tubular_normal_extra_bold" "$th_normal_xb")
+active_extra_bold=$(get_tmux_option "@tubular_active_extra_bold" "$th_active_xb")
+# prefix/copy cascade: explicit option > user-set active bold > theme value.
+# (If the user set active_extra_bold themselves, prefix/copy follow it like
+# they always have; otherwise the theme's per-mode character applies.)
+if __tubular_is_set "@tubular_active_extra_bold"; then
+  th_prefix_xb="$active_extra_bold"
+  th_copy_xb="$active_extra_bold"
+fi
+prefix_extra_bold=$(get_tmux_option "@tubular_prefix_extra_bold" "$th_prefix_xb")
+copy_extra_bold=$(get_tmux_option "@tubular_copy_extra_bold" "$th_copy_xb")
 
 # ---------------------------------------------------------------------------
 # Live Mode Expressions (the core of the plugin)

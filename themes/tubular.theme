@@ -1,0 +1,9 @@
+# tubular theme: tubular
+# The house style: kanagawa base, aqua border, pink/green/yellow pops,
+# heavy borders with an extra-bold active/prefix band.
+th_bg="#1f1f28"; th_bg_max="#181822"; th_bg_min="#24242e"
+th_fg="#c7c7aa"; th_fg_active="#cde4ed"; th_fg_focus="#dddddd"
+th_neutral_visible="#787878"; th_neutral_hidden="#54546d"
+th_zoom="#e6c384"; th_copy="#98bb6c"; th_prefix="#d27e99"; th_active="#7aa89f"
+th_border_lines="heavy"; th_normal_xb="0"; th_active_xb="1"
+th_prefix_xb="1"; th_copy_xb="0"

@@ -306,13 +306,102 @@ set -g @tubular_manage_content off   # default: colors only, your text is left a
 # set to `on` to also get tubular's bundled content for any unset slot.
 ```
 
+### Built-in themes (one option, every color)
+
+```tmux
+set -g @tubular_theme "kanagawa"   # the default
+```
+
+`@tubular_theme` swaps the **entire default palette** — backgrounds,
+foregrounds, all four mode colors — and a matching style character (border
+weight, mode boldness) with a single option. Available themes:
+
+| theme        | character                                                            |
+| ------------ | -------------------------------------------------------------------- |
+| `kanagawa`   | *(default)* ink-wash; crystalBlue border, violet/yellow mode pops     |
+| `tubular`    | kanagawa base with pink/green/yellow pops, heavy bold borders        |
+| `gruvbox`    | warm retro; blue border, orange/lime pops, chunky filled borders     |
+| `tokyonight` | deep navy neon; blue border, purple/green pops, glows bold in modes  |
+| `catppuccin` | Mocha pastels; blue border, mauve/green pops, stays soft             |
+| `nord`       | frosty and subdued; frost-cyan border, aurora purple/yellow pops     |
+| `one-dark`   | balanced slate; cyan border, purple/green pops                       |
+| `dracula`    | gothic neon; cyan border, pink/green pops, bold bands in every mode  |
+| `rose-pine`  | dreamy and muted; pine border, love/gold pops, stays soft            |
+
+Every preset follows the same design rules: colors are canonical values from
+the named scheme; the scheme's most *neutral* accent sits on the default pane
+border so the popping colors stay free for the modes; prefix/copy/normal keep
+the highest mutual contrast (zoom — only ever seen with the pane filling the
+screen — absorbs any look-alike accent); and thin normal borders always pair
+with fat prefix borders so the mode change reads even without the status bar.
+
+Precedence is strictly layered: **any `@tubular_*` option you set explicitly
+always wins.** The theme only replaces the plugin's built-in defaults
+underneath it, so you can pick a theme and still override one accent:
+
+```tmux
+set -g @tubular_theme "nord"
+set -g @tubular_prefix_color "#bf616a"   # everything nord, but a red prefix
+```
+
+An unknown theme name falls back to `kanagawa` (with a `display-message`
+warning).
+
+#### Bring any theme (custom theme files)
+
+Themes are plain files in the plugin's `themes/` directory, sourced once at
+load time (never in the render path). `@tubular_theme` accepts either a bare
+name — resolved against `themes/<name>.theme` — or any path containing a `/`
+(a leading `~` expands):
+
+```tmux
+set -g @tubular_theme "~/.config/tmux/my-theme.theme"
+```
+
+A theme file assigns `th_*` variables and only needs to define what it
+changes; anything it omits inherits the kanagawa defaults. The full set:
+
+```bash
+# my-theme.theme — a complete theme is ~10 lines
+th_bg="#191724"; th_bg_max="#16141f"; th_bg_min="#1f1d2e"      # backgrounds
+th_fg="#e0def4"; th_fg_active="#e0def4"; th_fg_focus="#e0def4" # text
+th_neutral_visible="#908caa"; th_neutral_hidden="#403d52"      # subdued UI
+th_zoom="#9ccfd8"; th_copy="#f6c177"                           # mode colors
+th_prefix="#eb6f92"; th_active="#31748f"
+th_border_lines="single"                                       # style character
+th_normal_xb="0"; th_active_xb="0"; th_prefix_xb="1"; th_copy_xb="0"
+```
+
+Drop a `.theme` file into `themes/` and it works by bare name, exactly like
+the bundled presets (which are the best reference — each documents its color
+choices).
+
+**Importing base16/base24 schemes.** To cover everything else, the bundled
+`scripts/theme-import-base16.sh` converts any scheme from
+[tinted-theming/schemes][] (250+ — essentially every color scheme in
+existence) into a theme file:
+
+```bash
+~/.tmux/plugins/tubular-tmux/scripts/theme-import-base16.sh \
+    rose-pine-moon.yaml > ~/.config/tmux/rose-pine-moon.theme
+```
+
+The importer maps the base16 slots deterministically (base0E purple → prefix,
+base0B green → copy, base0C cyan → border, base0D blue → zoom — the classic
+max-contrast assignment). Schemes that bend base16's hue conventions deserve
+a quick hand-tune of the generated file; that's why the flagship themes ship
+hand-tuned.
+
+[tinted-theming/schemes]: https://github.com/tinted-theming/schemes
+
 ### Mode colors (the bar colors)
 
 ```tmux
-set -g @tubular_prefix_color "#d9c1a6"   # bar bg while prefix is active
-set -g @tubular_copy_color   "#e1cc79"   # bar bg in copy/selection mode
-set -g @tubular_zoom_color   "#3d7ba9"   # bar bg when the pane is zoomed
-set -g @tubular_active_color "#a2c9d7"   # active border / current-tab pill
+# (defaults shown — the kanagawa theme's values)
+set -g @tubular_prefix_color "#957fb8"   # bar bg while prefix is active
+set -g @tubular_copy_color   "#e6c384"   # bar bg in copy/selection mode
+set -g @tubular_zoom_color   "#7aa89f"   # bar bg when the pane is zoomed
+set -g @tubular_active_color "#7e9cd8"   # active border / current-tab pill
 
 # optional: text color on the mode-colored bar (defaults to @tubular_bg)
 set -g @tubular_prefix_fg "#1f1f28"
@@ -325,13 +414,14 @@ Priority when more than one applies: **prefix > copy > zoom > normal.**
 ### Background & foreground palette
 
 ```tmux
+# (defaults shown — the kanagawa theme's values)
 set -g @tubular_bg              "#1f1f28"  # main background
-set -g @tubular_bg_max          "#181822"  # darker (the resting status bar)
-set -g @tubular_bg_min          "#24242e"  # lighter
+set -g @tubular_bg_max          "#16161d"  # darker (the resting status bar)
+set -g @tubular_bg_min          "#2a2a37"  # lighter
 set -g @tubular_fg              "#dcd7ba"  # main text
-set -g @tubular_fg_active       "#cde4ed"  # active window text
-set -g @tubular_fg_focus        "#dddddd"  # focused text
-set -g @tubular_neutral_visible "#787878"  # subdued UI (time, paths)
+set -g @tubular_fg_active       "#dcd7ba"  # active window text
+set -g @tubular_fg_focus        "#dcd7ba"  # focused text
+set -g @tubular_neutral_visible "#727169"  # subdued UI (time, paths)
 set -g @tubular_neutral_hidden  "#54546d"  # faint indicators (pane counts)
 ```
 
@@ -395,9 +485,10 @@ set -g @tubular_window_icons "󰲠󰲢󰲤󰲦󰲨󰲪󰲬󰲮󰲰󰲞"
 time; only colors and bold change per mode.
 
 ```tmux
+# (defaults shown — the kanagawa theme's values; other themes differ)
 set -g @tubular_normal_border_lines "single"   # single|double|heavy|simple|number|rounded
 set -g @tubular_normal_extra_bold "0"          # fill inactive border bg (0/1)
-set -g @tubular_active_extra_bold "1"          # active pane, normal/zoom
+set -g @tubular_active_extra_bold "0"          # active pane, normal/zoom
 set -g @tubular_prefix_extra_bold "1"          # active pane, prefix (cascades from active)
 set -g @tubular_copy_extra_bold   "0"          # active pane, copy   (cascades from active)
 ```
@@ -457,29 +548,17 @@ when the plugin loads, so by render time they're already plain tmux format.
 
 ## Theme gallery
 
-### Tokyo Night
+Gruvbox, Tokyo Night, Catppuccin Mocha, Nord, One Dark, Dracula, Rosé Pine,
+Kanagawa, and Tubular ship built in — set them with one line (see
+[Built-in themes](#built-in-themes-one-option-every-color)):
 
 ```tmux
-set -g @tubular_prefix_color "#bb9af7"
-set -g @tubular_copy_color   "#9ece6a"
-set -g @tubular_zoom_color   "#e0af68"
-set -g @tubular_active_color "#7aa2f7"
-set -g @tubular_bg "#1a1b26" ; set -g @tubular_bg_max "#16161e"
-set -g @tubular_fg "#c0caf5"
-set -g @tubular_neutral_visible "#565f89" ; set -g @tubular_neutral_hidden "#3b4261"
+set -g @tubular_theme "tokyonight"
 ```
 
-### Catppuccin Mocha
-
-```tmux
-set -g @tubular_prefix_color "#f5c2e7"
-set -g @tubular_copy_color   "#a6e3a1"
-set -g @tubular_zoom_color   "#f9e2af"
-set -g @tubular_active_color "#89b4fa"
-set -g @tubular_bg "#1e1e2e" ; set -g @tubular_bg_max "#11111b"
-set -g @tubular_fg "#cdd6f4"
-set -g @tubular_neutral_visible "#7f849c" ; set -g @tubular_neutral_hidden "#45475a"
-```
+Anything else can be imported from a base16 scheme or written as a ~10-line
+theme file (see [Bring any theme](#bring-any-theme-custom-theme-files)), or
+set inline via the palette options. A couple of inline recipes:
 
 ### Minimal monochrome
 

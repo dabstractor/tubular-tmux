@@ -1,0 +1,11 @@
+# tubular theme: rose-pine (main)
+# Dreamy and muted. Pine border (literally the neutral — a muted teal);
+# love/gold carry the contrast; foam rides alone on zoom. Soft character:
+# thin everywhere, fat only under prefix.
+# (Rosé Pine defines no shade darker than base; the bar background is derived.)
+th_bg="#191724"; th_bg_max="#16141f"; th_bg_min="#1f1d2e"
+th_fg="#e0def4"; th_fg_active="#e0def4"; th_fg_focus="#e0def4"
+th_neutral_visible="#908caa"; th_neutral_hidden="#403d52"
+th_zoom="#9ccfd8"; th_copy="#f6c177"; th_prefix="#eb6f92"; th_active="#31748f"
+th_border_lines="single"; th_normal_xb="0"; th_active_xb="0"
+th_prefix_xb="1"; th_copy_xb="0"

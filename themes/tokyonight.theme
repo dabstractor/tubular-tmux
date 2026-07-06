@@ -1,0 +1,10 @@
+# tubular theme: tokyonight (night)
+# Deep navy neon. Blue border (the signature, calmest accent); purple/green
+# carry the contrast; cyan (near the blue) rides alone on zoom. Thin lines
+# that glow bold in modes.
+th_bg="#1a1b26"; th_bg_max="#16161e"; th_bg_min="#292e42"
+th_fg="#c0caf5"; th_fg_active="#c0caf5"; th_fg_focus="#c0caf5"
+th_neutral_visible="#565f89"; th_neutral_hidden="#3b4261"
+th_zoom="#7dcfff"; th_copy="#9ece6a"; th_prefix="#bb9af7"; th_active="#7aa2f7"
+th_border_lines="single"; th_normal_xb="0"; th_active_xb="1"
+th_prefix_xb="1"; th_copy_xb="1"

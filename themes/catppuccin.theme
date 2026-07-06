@@ -1,0 +1,10 @@
+# tubular theme: catppuccin (mocha)
+# Neutral blue border; mauve/green carry the contrast; pink (too close to
+# mauve to share a screen with it) rides alone on zoom. Soft pastel
+# character — but prefix still goes fat (thin normal borders).
+th_bg="#1e1e2e"; th_bg_max="#181825"; th_bg_min="#313244"
+th_fg="#cdd6f4"; th_fg_active="#cdd6f4"; th_fg_focus="#f5e0dc"
+th_neutral_visible="#6c7086"; th_neutral_hidden="#45475a"
+th_zoom="#f5c2e7"; th_copy="#a6e3a1"; th_prefix="#cba6f7"; th_active="#89b4fa"
+th_border_lines="single"; th_normal_xb="0"; th_active_xb="0"
+th_prefix_xb="1"; th_copy_xb="0"
