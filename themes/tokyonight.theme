@@ -3,6 +3,7 @@
 # carry the contrast; cyan (near the blue) rides alone on zoom. Thin lines
 # that glow bold in modes.
 th_bg="#1a1b26"; th_bg_max="#16161e"; th_bg_min="#292e42"
+th_copy_pane_bg="#14141c"
 th_fg="#c0caf5"; th_fg_active="#c0caf5"; th_fg_focus="#c0caf5"
 th_neutral_visible="#565f89"; th_neutral_hidden="#3b4261"
 th_zoom="#7dcfff"; th_copy="#9ece6a"; th_prefix="#bb9af7"; th_active="#7aa2f7"

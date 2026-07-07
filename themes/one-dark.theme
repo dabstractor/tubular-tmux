@@ -2,6 +2,7 @@
 # Balanced slate. Neutral cyan border; purple/green carry the contrast;
 # blue (near the cyan) rides alone on zoom.
 th_bg="#282c34"; th_bg_max="#21252b"; th_bg_min="#2c313c"
+th_copy_pane_bg="#1f2329"
 th_fg="#abb2bf"; th_fg_active="#abb2bf"; th_fg_focus="#dcdfe4"
 th_neutral_visible="#5c6370"; th_neutral_hidden="#3e4451"
 th_zoom="#61afef"; th_copy="#98c379"; th_prefix="#c678dd"; th_active="#56b6c2"

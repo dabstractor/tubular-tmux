@@ -2,6 +2,7 @@
 # Warm retro, chunky. Neutral blue on the border; orange prefix vs lime copy
 # pop hardest; yellow (too close to orange) rides alone on zoom.
 th_bg="#282828"; th_bg_max="#1d2021"; th_bg_min="#32302f"
+th_copy_pane_bg="#1b1e1f"
 th_fg="#ebdbb2"; th_fg_active="#fbf1c7"; th_fg_focus="#fbf1c7"
 th_neutral_visible="#928374"; th_neutral_hidden="#504945"
 th_zoom="#fabd2f"; th_copy="#b8bb26"; th_prefix="#fe8019"; th_active="#83a598"

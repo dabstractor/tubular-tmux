@@ -4,6 +4,7 @@
 # default, thickens during modes.
 # (Nord defines no shade darker than nord0; the bar background is derived.)
 th_bg="#2e3440"; th_bg_max="#262b35"; th_bg_min="#3b4252"
+th_copy_pane_bg="#242933"
 th_fg="#d8dee9"; th_fg_active="#e5e9f0"; th_fg_focus="#eceff4"
 th_neutral_visible="#616e88"; th_neutral_hidden="#4c566a"
 th_zoom="#81a1c1"; th_copy="#ebcb8b"; th_prefix="#b48ead"; th_active="#88c0d0"

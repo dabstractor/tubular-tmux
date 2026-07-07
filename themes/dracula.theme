@@ -3,6 +3,7 @@
 # pops); pink/green carry the contrast; purple (the pink look-alike) rides
 # alone on zoom. Vivid character: bold bands in every mode.
 th_bg="#282a36"; th_bg_max="#21222c"; th_bg_min="#44475a"
+th_copy_pane_bg="#1f202a"
 th_fg="#f8f8f2"; th_fg_active="#f8f8f2"; th_fg_focus="#f8f8f2"
 th_neutral_visible="#6272a4"; th_neutral_hidden="#44475a"
 th_zoom="#bd93f9"; th_copy="#50fa7b"; th_prefix="#ff79c6"; th_active="#8be9fd"

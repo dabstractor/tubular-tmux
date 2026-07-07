@@ -3,6 +3,7 @@
 # violet/yellow carry the contrast, aqua rides alone on zoom.
 # Mirrors the inline base in tubular.tmux — keep them in sync.
 th_bg="#1f1f28"; th_bg_max="#16161d"; th_bg_min="#2a2a37"
+th_copy_pane_bg="#14141b"
 th_fg="#dcd7ba"; th_fg_active="#dcd7ba"; th_fg_focus="#dcd7ba"
 th_neutral_visible="#727169"; th_neutral_hidden="#54546d"
 th_zoom="#7aa89f"; th_copy="#e6c384"; th_prefix="#957fb8"; th_active="#7e9cd8"
