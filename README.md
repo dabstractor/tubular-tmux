@@ -419,7 +419,7 @@ set -g @tubular_zoom_fg   "#1f1f28"
 # any to override. copy dims the bg / brightens the fg.
 set -g @tubular_normal_pane_bg "#1f1f28"  # resting    (default: @tubular_bg)
 set -g @tubular_normal_pane_fg "#dcd7ba"  # resting    (default: @tubular_fg)
-set -g @tubular_copy_pane_bg   "#16161d"  # copy mode  (default: @tubular_bg_max)
+set -g @tubular_copy_pane_bg   "#14141b"  # copy mode  (default: theme's copy_pane_bg — a subtle dim of bg_max)
 set -g @tubular_copy_pane_fg   "#dcd7ba"  # copy mode  (default: @tubular_fg_focus)
 set -g @tubular_zoom_pane_bg   "#1f1f28"  # zoomed     (default: @tubular_bg)
 set -g @tubular_zoom_pane_fg   "#dcd7ba"  # zoomed     (default: @tubular_fg)

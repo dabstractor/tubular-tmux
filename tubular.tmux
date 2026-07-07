@@ -135,6 +135,7 @@ __tubular_load_theme() {
   # calm accent), violet/yellow contrast, aqua on zoom.
   # (themes/kanagawa.theme mirrors these values; keep them in sync.)
   th_bg="#1f1f28"; th_bg_max="#16161d"; th_bg_min="#2a2a37"
+  th_copy_pane_bg="#14141b"   # copy-mode pane bg (bg_max nudged down ~2/ch)
   th_fg="#dcd7ba"; th_fg_active="#dcd7ba"; th_fg_focus="#dcd7ba"
   th_neutral_visible="#727169"; th_neutral_hidden="#54546d"
   th_zoom="#7aa89f"; th_copy="#e6c384"; th_prefix="#957fb8"; th_active="#7e9cd8"
@@ -184,16 +185,18 @@ copy_fg=$(get_tmux_option "@tubular_copy_fg" "$bg")
 
 # Per-mode PANE interior colors. The focused pane recolors in each mode
 # (normal / copy / prefix / zoom), kept live by re-setting window-active-style
-# on every mode change (pane-mode-changed + window-layout-changed hooks and
-# the prefix key bindings — see below) since that style caches its format at
-# set-time. Distinct from the status-bar mode colors above: @tubular_*_color /
-# @tubular_*_fg paint the BAR; these paint the pane you read on. Defaults
-# preserve the built-in look; set any pair to override.
+# on every mode change (pane-mode-changed + window-layout-changed hooks — see
+# below) since that style caches its format at set-time. Distinct from the
+# status-bar mode colors above: @tubular_*_color / @tubular_*_fg paint the BAR;
+# these paint the pane you read on. Defaults preserve the built-in look; set any
+# pair to override.
 #   normal -> @tubular_bg / @tubular_fg
-#   copy   -> @tubular_bg_max (darker) / @tubular_fg_focus (brighter)
-#   prefix -> @tubular_neutral_hidden (dim) / @tubular_fg  [eye goes to the bar]
+#   copy   -> the theme's copy_pane_bg (a subtle dim: bg_max nudged down) /
+#             @tubular_fg_focus (brighter)
 #   zoom   -> @tubular_bg / @tubular_fg
-copy_pane_bg=$(get_tmux_option "@tubular_copy_pane_bg" "$bg_max")
+# Prefix has no pane color — client_prefix is per-client, but the pane interior
+# is shared; see the window-active-style comment.
+copy_pane_bg=$(get_tmux_option "@tubular_copy_pane_bg" "$th_copy_pane_bg")
 copy_pane_fg=$(get_tmux_option "@tubular_copy_pane_fg" "$fg_focus")
 normal_pane_bg=$(get_tmux_option "@tubular_normal_pane_bg" "$bg")
 normal_pane_fg=$(get_tmux_option "@tubular_normal_pane_fg" "$fg")
