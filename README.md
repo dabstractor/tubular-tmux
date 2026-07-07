@@ -207,15 +207,21 @@ take no `E:`.
 #[fg=#{E:@tubular_mode_fg}]     ✅ resolves to the live mode fg
 #[fg=#{@tubular_mode_fg}]       ❌ renders the raw conditional as garbage
 
-# STATIC    → no E: needed
-#[fg=#{@tubular_copy_color}]    ✅ plain #e1cc79
+# STATIC    → no E: needed; use the RESOLVED copies (@_tubular_*)
+#[fg=#{@_tubular_copy_color}]   ✅ plain #e6c384, whether it came from a
+                                #    theme or from your own option
+#[fg=#{@tubular_copy_color}]    ⚠️ only works if YOU set that option —
+                                #    empty when the color comes from
+                                #    @tubular_theme
 ```
 
 The dynamic variables are `@tubular_mode_bg`, `@tubular_mode_fg`,
-`@tubular_pill_bg`, `@tubular_pill_fg`, `@tubular_icon_fg`. Everything else in
-the configuration list below is a static literal. If you'd rather not remember
-the distinction, use the `{{token}}` shortcuts above instead; they handle it
-for you.
+`@tubular_pill_bg`, `@tubular_pill_fg`, `@tubular_icon_fg`. For static palette
+colors, reference the `@_tubular_*` resolved copies (same names as the input
+options, underscore-prefixed) — the plugin publishes the final palette there
+after layering themes and explicit options. If you'd rather not remember any
+of this, use the `{{token}}` shortcuts above instead; they expand to the right
+form for you.
 
 ---
 
@@ -407,6 +413,16 @@ set -g @tubular_active_color "#7e9cd8"   # active border / current-tab pill
 set -g @tubular_prefix_fg "#1f1f28"
 set -g @tubular_copy_fg   "#1f1f28"
 set -g @tubular_zoom_fg   "#1f1f28"
+
+# optional: the focused PANE surface, per mode (distinct from the bar colors
+# above, which paint the status line). Defaults keep the built-in look; set
+# any to override. copy dims the bg / brightens the fg.
+set -g @tubular_normal_pane_bg "#1f1f28"  # resting    (default: @tubular_bg)
+set -g @tubular_normal_pane_fg "#dcd7ba"  # resting    (default: @tubular_fg)
+set -g @tubular_copy_pane_bg   "#16161d"  # copy mode  (default: @tubular_bg_max)
+set -g @tubular_copy_pane_fg   "#dcd7ba"  # copy mode  (default: @tubular_fg_focus)
+set -g @tubular_zoom_pane_bg   "#1f1f28"  # zoomed     (default: @tubular_bg)
+set -g @tubular_zoom_pane_fg   "#dcd7ba"  # zoomed     (default: @tubular_fg)
 ```
 
 Priority when more than one applies: **prefix > copy > zoom > normal.**
@@ -499,6 +515,23 @@ By default, tubular paints the tmux pane background: inactive panes get
 `@tubular_bg_max` and the active pane gets `@tubular_bg`, for an opaque,
 theme-matched look with no seam between the bar and the pane content. The pane
 foreground colors are always themed (dimmer on inactive panes).
+
+The focused pane also reacts to the mode, recoloring its interior per mode:
+**copy** dims the bg to `@tubular_copy_pane_bg` and brightens the text to
+`@tubular_copy_pane_fg`, **zoom** uses `@tubular_zoom_pane_*`, and **normal**
+uses `@tubular_normal_pane_*`. All default to the themed look; set any to
+override. Priority is copy > zoom > normal.
+
+> **Why there is no prefix pane color.** `window-active-style` caches its format
+> at set-time and is never re-evaluated on redraw, so the plugin re-applies it
+> on each mode change (copy via a `pane-mode-changed` hook, zoom via
+> `window-layout-changed`). Prefix can't be done this way: `client_prefix` is
+> per-client, but the pane interior is shared across clients, so a
+> `#{?client_prefix,…}` in `window-active-style` stores but never paints. A
+> key-binding swap paints on press but can't be restored reliably — there's no
+> hook that fires on prefix-table exit, and bound prefix commands bypass the
+> `Any` fallback, so the color sticks. The prefix **border and status bar** do
+> recolor (their styles are dynamic); the pane interior does not, by design.
 
 If you run your terminal with **transparency** or a **background image**, three
 modes are available via `@tubular_pane_bg`:

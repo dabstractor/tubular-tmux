@@ -54,14 +54,17 @@ __tubular_tok_names=(
   neutral_visible neutral_hidden
   zoom_indicator
 )
+# Static color tokens point at the RESOLVED internal copies (@_tubular_*),
+# not the user input options: input options are unset when the palette comes
+# from @tubular_theme, but the internals always hold the final colors.
 __tubular_tok_values=(
   '#{E:@tubular_mode_bg}'      '#{E:@tubular_mode_fg}'
   '#{E:@tubular_pill_bg}'      '#{E:@tubular_pill_fg}'       '#{E:@tubular_icon_fg}'
-  '#{@tubular_prefix_color}'   '#{@tubular_copy_color}'
-  '#{@tubular_zoom_color}'     '#{@tubular_active_color}'
-  '#{@tubular_bg}'             '#{@tubular_bg_max}'          '#{@tubular_bg_min}'
-  '#{@tubular_fg}'             '#{@tubular_fg_active}'       '#{@tubular_fg_focus}'
-  '#{@tubular_neutral_visible}' '#{@tubular_neutral_hidden}'
+  '#{@_tubular_prefix_color}'   '#{@_tubular_copy_color}'
+  '#{@_tubular_zoom_color}'     '#{@_tubular_active_color}'
+  '#{@_tubular_bg}'             '#{@_tubular_bg_max}'          '#{@_tubular_bg_min}'
+  '#{@_tubular_fg}'             '#{@_tubular_fg_active}'       '#{@_tubular_fg_focus}'
+  '#{@_tubular_neutral_visible}' '#{@_tubular_neutral_hidden}'
   '#{?window_zoomed_flag,#{@tubular_zoom_indicator},}'
 )
 __tubular_expand_tokens() {
@@ -179,6 +182,24 @@ prefix_fg=$(get_tmux_option "@tubular_prefix_fg" "$bg")
 zoom_fg=$(get_tmux_option "@tubular_zoom_fg" "$bg")
 copy_fg=$(get_tmux_option "@tubular_copy_fg" "$bg")
 
+# Per-mode PANE interior colors. The focused pane recolors in each mode
+# (normal / copy / prefix / zoom), kept live by re-setting window-active-style
+# on every mode change (pane-mode-changed + window-layout-changed hooks and
+# the prefix key bindings — see below) since that style caches its format at
+# set-time. Distinct from the status-bar mode colors above: @tubular_*_color /
+# @tubular_*_fg paint the BAR; these paint the pane you read on. Defaults
+# preserve the built-in look; set any pair to override.
+#   normal -> @tubular_bg / @tubular_fg
+#   copy   -> @tubular_bg_max (darker) / @tubular_fg_focus (brighter)
+#   prefix -> @tubular_neutral_hidden (dim) / @tubular_fg  [eye goes to the bar]
+#   zoom   -> @tubular_bg / @tubular_fg
+copy_pane_bg=$(get_tmux_option "@tubular_copy_pane_bg" "$bg_max")
+copy_pane_fg=$(get_tmux_option "@tubular_copy_pane_fg" "$fg_focus")
+normal_pane_bg=$(get_tmux_option "@tubular_normal_pane_bg" "$bg")
+normal_pane_fg=$(get_tmux_option "@tubular_normal_pane_fg" "$fg")
+zoom_pane_bg=$(get_tmux_option "@tubular_zoom_pane_bg" "$bg")
+zoom_pane_fg=$(get_tmux_option "@tubular_zoom_pane_fg" "$fg")
+
 # === Pane background ===
 # on     (default): paint ALL panes — @tubular_bg_max on inactive, @tubular_bg
 #                   on active — for a fully opaque, theme-matched look.
@@ -215,7 +236,7 @@ tab_end=$(get_tmux_option "@tubular_tab_end" "")
 # === Read Icon Options ===
 pane_icons=$(get_tmux_option "@tubular_pane_icons" "󰼏󰼐󰼑󰼒󰼓󰼔󰼕󰼖󰼗󰼘")
 window_icons=$(get_tmux_option "@tubular_window_icons" "󰲠󰲢󰲤󰲦󰲨󰲪󰲬󰲮󰲰󰲞")
-zoom_indicator=$(get_tmux_option "@tubular_zoom_indicator" "+")
+zoom_indicator=$(get_tmux_option "@tubular_zoom_indicator" " ")
 bell_icon=$(get_tmux_option "@tubular_bell_icon" "")
 
 # === Read Border Style Options ===
@@ -271,8 +292,11 @@ tmux set-option -g @tubular_pill_bg "$pill_bg"
 tmux set-option -g @tubular_pill_fg "$pill_fg"
 tmux set-option -g @tubular_icon_fg "$icon_fg"
 
-# Internal static palette copies (used inside this plugin's own formats; not
-# part of the public API — users reference their own @tubular_* input options).
+# Resolved static palette copies — the FINAL colors after layering the theme
+# and any explicit @tubular_* input options. Used inside this plugin's own
+# formats, targeted by the {{token}} shortcuts, and the documented reference
+# for static colors in user formats (input options are unset when the palette
+# comes from @tubular_theme, so they can't serve that role).
 tmux set-option -g @_tubular_bg "$bg"
 tmux set-option -g @_tubular_bg_max "$bg_max"
 tmux set-option -g @_tubular_bg_min "$bg_min"
@@ -285,6 +309,12 @@ tmux set-option -g @_tubular_zoom_color "$zoom_color"
 tmux set-option -g @_tubular_copy_color "$copy_color"
 tmux set-option -g @_tubular_prefix_color "$prefix_color"
 tmux set-option -g @_tubular_active_color "$active_color"
+tmux set-option -g @_tubular_normal_pane_bg "$normal_pane_bg"
+tmux set-option -g @_tubular_normal_pane_fg "$normal_pane_fg"
+tmux set-option -g @_tubular_copy_pane_bg "$copy_pane_bg"
+tmux set-option -g @_tubular_copy_pane_fg "$copy_pane_fg"
+tmux set-option -g @_tubular_zoom_pane_bg "$zoom_pane_bg"
+tmux set-option -g @_tubular_zoom_pane_fg "$zoom_pane_fg"
 
 # === Icon Options (exposed for the icon-chain formats below) ===
 tmux set-option -g @tubular_pane_icons "$pane_icons"
@@ -323,23 +353,34 @@ tmux set-window-option -g mode-style "fg=$fg,bg=$copy_color,bold"
 #   on     -> every pane painted (active = @tubular_bg, inactive = @tubular_bg_max)
 #   active -> only the focused pane painted; inactive panes stay transparent
 #   off    -> no pane painted; full transparency
-# The active pane dims to @tubular_neutral_hidden while the prefix is held,
-# drawing the eye to the lit-up status bar instead.
-active_bg="bg=#{?client_prefix,$neutral_hidden,$bg}"
+# The active pane reacts to the mode like the status bar and borders — BUT
+# window-active-style is the one style tmux does NOT re-evaluate per redraw:
+# it caches the format at the moment the option is SET, so the conditionals
+# below would otherwise freeze at whatever the mode was at load. status-style
+# and pane-active-border-style are dynamic; window-active-style is not. To
+# keep it live we re-set this option on every mode change (pane-mode-changed
+# hook + the prefix key bindings, both installed later), reusing this same
+# template, expanded against the live palette + mode at fire time.
+# copy / zoom / normal are driven by pane_in_mode / window_zoomed_flag here,
+# re-applied by the pane-mode-changed + window-layout-changed hooks (the mode
+# change itself redraws the pane, picking up the new template).
+#   copy mode -> @tubular_copy_pane_*   (darker bg, brighter fg)
+#   zoom      -> @tubular_zoom_pane_*
+#   normal    -> @tubular_normal_pane_*
+# Prefix is intentionally NOT here: client_prefix is PER-CLIENT, but the pane
+# interior is shared across clients, so a #{?client_prefix,...} in
+# window-active-style stores but never paints. Pair that with the set-time
+# caching (no re-eval on redraw) and the absence of any hook that fires on
+# prefix-table exit, and a binding-based swap can't be restored reliably
+# (bound prefix commands bypass it; the color sticks). So the pane interior
+# does not react to prefix — the border and status bar do (dynamic styles).
+active_style_tmpl="fg=#{?pane_in_mode,#{@_tubular_copy_pane_fg},#{?window_zoomed_flag,#{@_tubular_zoom_pane_fg},#{@_tubular_normal_pane_fg}}}"
+[ "$pane_bg" != "off" ] && active_style_tmpl="$active_style_tmpl,bg=#{?pane_in_mode,#{@_tubular_copy_pane_bg},#{?window_zoomed_flag,#{@_tubular_zoom_pane_bg},#{@_tubular_normal_pane_bg}}}"
 case "$pane_bg" in
-  on)
-    tmux set-option -g window-style "fg=$neutral_visible,bg=$bg_max"
-    tmux set-option -g window-active-style "fg=#{?pane_in_mode,$fg_focus,$fg},$active_bg"
-    ;;
-  active)
-    tmux set-option -g window-style "fg=$neutral_visible"
-    tmux set-option -g window-active-style "fg=#{?pane_in_mode,$fg_focus,$fg},$active_bg"
-    ;;
-  off)
-    tmux set-option -g window-style "fg=$neutral_visible"
-    tmux set-option -g window-active-style "fg=#{?pane_in_mode,$fg_focus,$fg}"
-    ;;
+  on) tmux set-option -g window-style "fg=$neutral_visible,bg=$bg_max" ;;
+  *)  tmux set-option -g window-style "fg=$neutral_visible" ;;
 esac
+tmux set-option -g window-active-style "$active_style_tmpl"
 
 # ---------------------------------------------------------------------------
 # Pane Borders
@@ -431,6 +472,14 @@ tmux set-hook -gu pane-mode-changed 2>/dev/null
 # over. Auto-detecting it isn't reliable: once the plugin sets prefix to None,
 # a reload can no longer read the original key back.
 prefix_key=$(get_tmux_option "@tubular_prefix_key" "")
+# Re-apply the mode-reactive window-active-style on copy/zoom changes. It
+# caches its format at set-time (no re-eval on redraw), so the option must be
+# re-set when the mode flips: pane-mode-changed covers copy, window-layout-changed
+# covers zoom (it fires on the zoom toggle). Prefix is deliberately not handled
+# here — see the window-active-style comment for why it can't be done reliably.
+# Pure tmux, no shell at render.
+tmux set-hook -g pane-mode-changed "set-option -g window-active-style \"$active_style_tmpl\""
+tmux set-hook -g window-layout-changed "set-option -g window-active-style \"$active_style_tmpl\""
 if [ -n "$prefix_key" ]; then
   tmux set-option -g prefix None
   tmux bind-key -n "$prefix_key" 'switch-client -T prefix ; refresh-client'
