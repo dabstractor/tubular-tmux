@@ -4,7 +4,9 @@ A tmux status-line theme that paints the whole bar and the pane borders with
 the color of the mode you're in, so you always know what tmux is about to do
 without reading a thing.
 
-https://github.com/user-attachments/assets/a266d00f-a3f8-49ab-a8a0-deb83ed26623
+
+https://github.com/user-attachments/assets/80aa7e84-f693-4080-8754-f8bfa74514e8
+
 
 ## Why this exists
 
