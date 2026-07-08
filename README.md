@@ -29,9 +29,9 @@ into one large mode signal:
 
 | State        | The whole bar turns |
 | ------------- | ------------------- |
-| Prefix held  | tan                 |
+| Prefix held  | violet              |
 | Copy mode    | yellow              |
-| Pane zoomed  | blue                |
+| Pane zoomed  | aqua                |
 | Resting      | dark                |
 
 Colors shown are the defaults; every one is configurable.
