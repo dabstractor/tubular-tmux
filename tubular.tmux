@@ -282,10 +282,13 @@ pill_fg="#{?$any_mode,#{?client_prefix,$prefix_color,#{?$copy_live,$copy_color,$
 # particular window is zoomed), mode fg otherwise.
 icon_fg="#{?client_prefix,$prefix_fg,#{?$copy_live,$copy_fg,#{?$zoom_live,$zoom_fg,#{?window_zoomed_flag,$zoom_color,$neutral_hidden}}}}"
 
-# Foreground for an activity/bell tab and the bell glyph: bright (@tubular_fg)
-# on the dark NORMAL bar so the alert reads, but the dark mode fg on the bright
-# PREFIX/COPY/ZOOM bars — white-on-white would be invisible there.
-alert_fg="#{?$any_mode,#{E:@tubular_mode_fg},#{@tubular_fg}}"
+# Foreground for an activity/bell tab and the bell glyph: bright (@_tubular_fg,
+# the resolved palette) on the dark NORMAL bar so the alert reads, but the dark
+# mode fg on the bright PREFIX/COPY/ZOOM bars — white-on-white would be
+# invisible there. NB: must read @_tubular_fg (always set), NOT @tubular_fg
+# (the user-input option, unset when the palette comes from @tubular_theme —
+# which would make alert_fg blank and silently drop the highlight).
+alert_fg="#{?$any_mode,#{E:@tubular_mode_fg},#{@_tubular_fg}}"
 
 # Store for use in styles/formats via #{E:...} and for user content strings.
 # These are the PUBLIC dynamic color variables (reference with #{E:...}).
