@@ -344,10 +344,6 @@ tmux set-window-option -g window-status-last-style "fg=#{E:@tubular_mode_fg},bg=
 tmux set-window-option -g window-status-activity-style "fg=$alert_fg,bg=#{E:@tubular_mode_bg}"
 tmux set-window-option -g window-status-bell-style "fg=$alert_fg,bg=#{E:@tubular_mode_bg}"
 
-# Back on stock status-format, so the length limits apply again
-tmux set-option -g status-left-length 100
-tmux set-option -g status-right-length 150
-
 tmux set-option -g message-style "fg=$bg,bg=$active_color,align=centre"
 tmux set-option -g message-command-style "fg=$bg,bg=$active_color,align=centre"
 
@@ -421,14 +417,20 @@ icon_selector="#{?window_bell_flag,$bell_icon,#{?client_prefix,$window_icon_chai
 # only if (a) you explicitly set its @tubular_*_text, or (b) manage_content is
 # on. Otherwise the option is left untouched, so your own native content shows
 # through — fully colored by the *-style base layer above.
+#
+# status-{left,right}-length belong to the TEXT layer are only set if tubular
+# is the one that "owns" the content, otherwise we would incorrectly overwrite
+# the user config
 
 # status-left
 if __tubular_resolve_content "@tubular_status_left_text" " #S  "; then
+  tmux set-option -g status-left-length 100
   tmux set-option -g status-left "#[fg=#{E:@tubular_mode_fg},bg=#{E:@tubular_mode_bg},nobold]$__TUBULAR_RESOLVED"
 fi
 
 # status-right
 if __tubular_resolve_content "@tubular_status_right_text" "  󰃰  %I:%M  "; then
+  tmux set-option -g status-right-length 150
   tmux set-option -g status-right "#[fg=#{E:@tubular_mode_fg},bg=#{E:@tubular_mode_bg}]$__TUBULAR_RESOLVED"
 fi
 
