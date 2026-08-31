@@ -30,7 +30,11 @@ get_tmux_option() {
   local default="$2"
   local value
   value=$(tmux show-option -gqv "$option")
-  [ -n "$value" ] && echo "$value" || echo "$default"
+  if [ -n "$value" ]; then
+    printf '%s\n' "$value"
+  else
+    printf '%s\n' "$default"
+  fi
 }
 
 # Is a user option explicitly set? show-options errors (exit 1) on unknown /
